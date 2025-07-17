@@ -1,0 +1,226 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request as HttpRequest;
+use App\Models\Request;
+use App\Models\Branch;
+use Illuminate\Support\Facades\Storage;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+
+class RequestController extends Controller
+{
+    public function index(HttpRequest $request)
+    {
+        $branches = Branch::all();
+        $branchId = $request->query('branch');
+
+        if ($branchId) {
+            $requests = Request::where('branch_id', $branchId)->get();
+            $selectedBranch = Branch::find($branchId);
+        } else {
+            $requests = Request::all();
+            $selectedBranch = null;
+        }
+
+        return view('requests.index', compact('requests', 'branches', 'selectedBranch'));
+    }
+
+    public function create()
+    {
+        $branches = Branch::all();
+        return view('requests.create', compact('branches'));
+    }
+
+    public function store(HttpRequest $request)
+    {
+        $validated = $request->validate([
+            'branch_id' => 'required|exists:branches,id',
+            'date' => 'required|date',
+            'unit' => 'required|integer|min:1',
+            'xlsx_file' => 'required|file|mimes:xlsx,xls|max:5120'
+        ]);
+
+        // Muat isi file Excel
+        $spreadsheet = IOFactory::load($request->file('xlsx_file')->getRealPath());
+        $worksheet = $spreadsheet->getActiveSheet();
+
+        $rows = [];
+        foreach ($worksheet->getRowIterator() as $rowIndex => $row) {
+            $cells = [];
+            foreach ($row->getCellIterator() as $cell) {
+                $cells[] = trim($cell->getFormattedValue());
+            }
+            // Lewati baris kosong
+            if (array_filter($cells)) {
+                $rows[] = $cells;
+            }
+        }
+
+        // Deteksi duplikat berdasarkan kombinasi branch, date, dan isi excel
+        $existingRequests = Request::where('branch_id', $validated['branch_id'])
+            ->where('date', $validated['date'])
+            ->get();
+
+        foreach ($existingRequests as $existing) {
+            $existingPath = storage_path("app/public/" . $existing->path);
+            if (file_exists($existingPath)) {
+                $existingSpreadsheet = IOFactory::load($existingPath);
+                $existingSheet = $existingSpreadsheet->getActiveSheet();
+                $existingRows = [];
+                foreach ($existingSheet->getRowIterator() as $r) {
+                    $data = [];
+                    foreach ($r->getCellIterator() as $c) {
+                        $data[] = trim($c->getFormattedValue());
+                    }
+                    if (array_filter($data)) {
+                        $existingRows[] = $data;
+                    }
+                }
+
+                // Bandingkan isi
+                if ($existingRows == $rows) {
+                    return back()->withErrors(['xlsx_file' => 'File Excel yang sama sudah pernah diunggah untuk cabang dan tanggal ini.']);
+                }
+            }
+        }
+
+        // Simpan file
+        $filePath = $request->file('xlsx_file')->store('requests', 'public');
+
+        // Simpan data
+        Request::create([
+            'branch_id' => $validated['branch_id'],
+            'date' => $validated['date'],
+            'unit' => $validated['unit'],
+            'path' => $filePath,
+            'user_id' => auth()->user()->id,
+            'type' => auth()->user()->type,
+            'status' => 'Menunggu'
+        ]);
+
+        return redirect()->route('requests.index')->with('success', 'Permintaan berhasil disimpan!');
+    }
+
+    public function edit($id)
+    {
+        $request = Request::findOrFail($id);
+        $branches = Branch::all();
+        return view('requests.edit', compact('request', 'branches'));
+    }
+
+    public function update(HttpRequest $requestData, $id)
+    {
+        $validated = $requestData->validate([
+            'branch_id' => 'required|exists:branches,id',
+            'date' => 'required|date',
+            'unit' => 'required|integer|min:1',
+            'xlsx_file' => 'nullable|file|mimes:xlsx,xls|max:5120'
+        ]);
+
+        $request = Request::findOrFail($id);
+        $request->branch_id = $validated['branch_id'];
+        $request->date = $validated['date'];
+        $request->unit = $validated['unit'];
+
+        if ($requestData->hasFile('xlsx_file')) {
+            if ($request->path && Storage::disk('public')->exists($request->path)) {
+                Storage::disk('public')->delete($request->path);
+            }
+
+            $newFilePath = $requestData->file('xlsx_file')->store('requests', 'public');
+            $request->path = $newFilePath;
+        }
+
+        $request->save();
+
+        return redirect()->route('requests.index')->with('success', 'Permintaan berhasil diperbarui!');
+    }
+
+    public function destroy($id)
+    {
+        $request = Request::findOrFail($id);
+
+        if ($request->path && Storage::disk('public')->exists($request->path)) {
+            Storage::disk('public')->delete($request->path);
+        }
+
+        $request->delete();
+
+        return redirect()->route('requests.index')->with('success', 'Permintaan berhasil dihapus!');
+    }
+
+    public function download($filename)
+    {
+        $filePath = 'requests/' . $filename;
+
+        if (!Storage::disk('public')->exists($filePath)) {
+            abort(404, 'File tidak ditemukan.');
+        }
+
+        return response()->download(storage_path("app/public/{$filePath}"));
+    }
+
+    public function show($id)
+    {
+        $request = Request::findOrFail($id);
+        $filePath = $request->path;
+        $fullPath = storage_path("app/public/{$filePath}");
+
+        if (!file_exists($fullPath)) {
+            return abort(404, 'File tidak ditemukan.');
+        }
+
+        $spreadsheet = IOFactory::load($fullPath);
+        $worksheet = $spreadsheet->getActiveSheet();
+        $rows = [];
+
+        foreach ($worksheet->getRowIterator() as $row) {
+            $cells = [];
+            foreach ($row->getCellIterator() as $cell) {
+                $cells[] = $cell->getFormattedValue();
+            }
+            $rows[] = $cells;
+        }
+
+        return view('requests.show', compact('request', 'rows'));
+    }
+
+    public function preview($id)
+    {
+        $request = Request::findOrFail($id);
+        $filePath = $request->path;
+        $fullPath = storage_path("app/public/{$filePath}");
+
+        if (!file_exists($fullPath)) {
+            return response()->json(['error' => 'File tidak ditemukan'], 404);
+        }
+
+        $spreadsheet = IOFactory::load($fullPath);
+        $worksheet = $spreadsheet->getActiveSheet();
+        $rows = [];
+
+        foreach ($worksheet->getRowIterator() as $row) {
+            $cells = [];
+            foreach ($row->getCellIterator() as $cell) {
+                $cells[] = $cell->getFormattedValue();
+            }
+            $rows[] = $cells;
+        }
+
+        return response()->json(['rows' => $rows]);
+    }
+
+    public function updateStatus(HttpRequest $request, $id)
+    {
+        $validated = $request->validate([
+            'status' => 'required|in:Menunggu,Disetujui,Ditolak'
+        ]);
+
+        $req = Request::findOrFail($id);
+        $req->status = $validated['status'];
+        $req->save();
+
+        return redirect()->route('requests.index')->with('success', 'Status permintaan diperbarui.');
+    }
+}
