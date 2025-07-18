@@ -83,10 +83,11 @@
                 @csrf
 
                 {{-- Tanggal Pengiriman --}}
-                <div class="mb-3">
-    <label for="bulan_tahun" class="form-label">Bulan & Tahun Pengiriman</label>
-    <input type="month" name="tanggal_pengiriman" id="bulan_tahun" class="form-control" required>
-</div>
+                <div>
+                    <label for="tanggal_pengiriman">Tanggal Pengiriman</label>
+                    <input type="date" name="tanggal_pengiriman" id="tanggal_pengiriman"
+                        value="{{ old('tanggal_pengiriman') }}" required>
+                </div>
 
                 {{-- Slot Pengiriman --}}
                 <div>

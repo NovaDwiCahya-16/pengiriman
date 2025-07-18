@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request as HttpRequest;
 use App\Models\Request;
 use App\Models\Branch;
+use App\Models\SlotDelivery;
 use Illuminate\Support\Facades\Storage;
 use Rap2hpoutre\FastExcel\FastExcel;
 
@@ -60,10 +61,25 @@ class RequestController extends Controller
             }
         }
 
+        // Hitung jumlah permintaan berdasarkan jumlah baris file
+        $jumlahPermintaan = $rows->count();
+
+        // Coba ambil slot pengiriman pada tanggal yang sama
+        $slot = SlotDelivery::where('tanggal_pengiriman', $validated['date'])->first();
+
+        if ($slot) {
+            // Tambahkan permintaan ke slot
+            $slot->permintaan_kirim += $jumlahPermintaan;
+            $selisih = $slot->slot_pengiriman - $slot->permintaan_kirim;
+
+            $slot->over_sisa = $selisih < 0 ? abs($selisih) . ' over' : $selisih . ' sisa';
+            $slot->save();
+        }
+
         // Simpan file
         $filePath = $file->store('requests', 'public');
 
-        // Simpan data
+        // Simpan data request
         Request::create([
             'branch_id' => $validated['branch_id'],
             'date' => $validated['date'],
