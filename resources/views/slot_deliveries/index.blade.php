@@ -33,7 +33,7 @@
                     @foreach ($slots as $index => $slot)
                         <tr>
                             <td>{{ $index + 1 }}</td>
-                            <td>{{ \Carbon\Carbon::parse($slot->tanggal_pengiriman)->format('d-m-Y') }}</td>
+<td>{{ \Carbon\Carbon::parse($slot->tanggal_pengiriman)->format('F Y') }}</td>
                             <td>{{ $slot->slot_pengiriman }}</td>
                             <td>{{ $slot->permintaan_kirim }}</td>
                             <td>
