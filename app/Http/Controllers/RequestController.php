@@ -5,9 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request as HttpRequest;
 use App\Models\Request;
 use App\Models\Branch;
-use App\Models\SlotDelivery;
 use Illuminate\Support\Facades\Storage;
-use Rap2hpoutre\FastExcel\FastExcel;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 
 class RequestController extends Controller
 {
@@ -42,8 +41,21 @@ class RequestController extends Controller
             'xlsx_file' => 'required|file|mimes:xlsx,xls|max:5120'
         ]);
 
-        $file = $request->file('xlsx_file');
-        $rows = (new FastExcel)->import($file);
+        // Muat isi file Excel
+        $spreadsheet = IOFactory::load($request->file('xlsx_file')->getRealPath());
+        $worksheet = $spreadsheet->getActiveSheet();
+
+        $rows = [];
+        foreach ($worksheet->getRowIterator() as $rowIndex => $row) {
+            $cells = [];
+            foreach ($row->getCellIterator() as $cell) {
+                $cells[] = trim($cell->getFormattedValue());
+            }
+            // Lewati baris kosong
+            if (array_filter($cells)) {
+                $rows[] = $cells;
+            }
+        }
 
         // Deteksi duplikat berdasarkan kombinasi branch, date, dan isi excel
         $existingRequests = Request::where('branch_id', $validated['branch_id'])
@@ -53,33 +65,30 @@ class RequestController extends Controller
         foreach ($existingRequests as $existing) {
             $existingPath = storage_path("app/public/" . $existing->path);
             if (file_exists($existingPath)) {
-                $existingRows = (new FastExcel)->import($existingPath)->toArray();
+                $existingSpreadsheet = IOFactory::load($existingPath);
+                $existingSheet = $existingSpreadsheet->getActiveSheet();
+                $existingRows = [];
+                foreach ($existingSheet->getRowIterator() as $r) {
+                    $data = [];
+                    foreach ($r->getCellIterator() as $c) {
+                        $data[] = trim($c->getFormattedValue());
+                    }
+                    if (array_filter($data)) {
+                        $existingRows[] = $data;
+                    }
+                }
 
-                if ($existingRows == $rows->toArray()) {
+                // Bandingkan isi
+                if ($existingRows == $rows) {
                     return back()->withErrors(['xlsx_file' => 'File Excel yang sama sudah pernah diunggah untuk cabang dan tanggal ini.']);
                 }
             }
         }
 
-        // Hitung jumlah permintaan berdasarkan jumlah baris file
-        $jumlahPermintaan = $rows->count();
-
-        // Coba ambil slot pengiriman pada tanggal yang sama
-        $slot = SlotDelivery::where('tanggal_pengiriman', $validated['date'])->first();
-
-        if ($slot) {
-            // Tambahkan permintaan ke slot
-            $slot->permintaan_kirim += $jumlahPermintaan;
-            $selisih = $slot->slot_pengiriman - $slot->permintaan_kirim;
-
-            $slot->over_sisa = $selisih < 0 ? abs($selisih) . ' over' : $selisih . ' sisa';
-            $slot->save();
-        }
-
         // Simpan file
-        $filePath = $file->store('requests', 'public');
+        $filePath = $request->file('xlsx_file')->store('requests', 'public');
 
-        // Simpan data request
+        // Simpan data
         Request::create([
             'branch_id' => $validated['branch_id'],
             'date' => $validated['date'],
@@ -155,13 +164,24 @@ class RequestController extends Controller
     public function show($id)
     {
         $request = Request::findOrFail($id);
-        $filePath = storage_path("app/public/{$request->path}");
+        $filePath = $request->path;
+        $fullPath = storage_path("app/public/{$filePath}");
 
-        if (!file_exists($filePath)) {
+        if (!file_exists($fullPath)) {
             return abort(404, 'File tidak ditemukan.');
         }
 
-        $rows = (new FastExcel)->import($filePath);
+        $spreadsheet = IOFactory::load($fullPath);
+        $worksheet = $spreadsheet->getActiveSheet();
+        $rows = [];
+
+        foreach ($worksheet->getRowIterator() as $row) {
+            $cells = [];
+            foreach ($row->getCellIterator() as $cell) {
+                $cells[] = $cell->getFormattedValue();
+            }
+            $rows[] = $cells;
+        }
 
         return view('requests.show', compact('request', 'rows'));
     }
@@ -169,13 +189,24 @@ class RequestController extends Controller
     public function preview($id)
     {
         $request = Request::findOrFail($id);
-        $filePath = storage_path("app/public/{$request->path}");
+        $filePath = $request->path;
+        $fullPath = storage_path("app/public/{$filePath}");
 
-        if (!file_exists($filePath)) {
+        if (!file_exists($fullPath)) {
             return response()->json(['error' => 'File tidak ditemukan'], 404);
         }
 
-        $rows = (new FastExcel)->import($filePath);
+        $spreadsheet = IOFactory::load($fullPath);
+        $worksheet = $spreadsheet->getActiveSheet();
+        $rows = [];
+
+        foreach ($worksheet->getRowIterator() as $row) {
+            $cells = [];
+            foreach ($row->getCellIterator() as $cell) {
+                $cells[] = $cell->getFormattedValue();
+            }
+            $rows[] = $cells;
+        }
 
         return response()->json(['rows' => $rows]);
     }
