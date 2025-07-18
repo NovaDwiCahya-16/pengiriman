@@ -12,8 +12,10 @@ return new class extends Migration
             $table->id();
             $table->foreignId('branch_id')->constrained('branches')->onDelete('cascade');
             $table->date('date');
-            $table->string('path'); // untuk file .xlsx
+            $table->string('path');
+            $table->string('original_filename')->nullable();
             $table->unsignedInteger('unit');
+            $table->enum('status', ['Menunggu', 'Disetujui', 'Ditolak', 'Diproses'])->default('Menunggu');
             $table->timestamps();
         });
     }
