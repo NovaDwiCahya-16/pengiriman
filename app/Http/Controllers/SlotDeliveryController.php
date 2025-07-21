@@ -45,7 +45,7 @@ class SlotDeliveryController extends Controller
             'permintaan_kirim.min' => 'Permintaan kirim minimal 0.',
         ]);
 
-        $date = Carbon::parse($validated['tanggal_pengiriman'])->startOfMonth(); // Simpan hanya awal bulan
+        $date = Carbon::parse($validated['tanggal_pengiriman']);
 
         // Cek apakah sudah ada slot untuk bulan & tahun yang sama
         $existing = SlotDelivery::whereMonth('tanggal_pengiriman', $date->month)
@@ -58,7 +58,6 @@ class SlotDeliveryController extends Controller
             ])->withInput();
         }
 
-        $validated['tanggal_pengiriman'] = $date; // Force simpan sebagai awal bulan
         $validated['over_sisa'] = $validated['slot_pengiriman'] - $validated['permintaan_kirim'];
 
         SlotDelivery::create($validated);
@@ -97,7 +96,7 @@ class SlotDeliveryController extends Controller
             'permintaan_kirim.min' => 'Permintaan kirim minimal 0.',
         ]);
 
-        $date = Carbon::parse($validated['tanggal_pengiriman'])->startOfMonth();
+        $date = Carbon::parse($validated['tanggal_pengiriman']);
 
         // Cek apakah bulan ini sudah ada slot selain ID saat ini
         $existing = SlotDelivery::whereMonth('tanggal_pengiriman', $date->month)
@@ -111,7 +110,6 @@ class SlotDeliveryController extends Controller
             ])->withInput();
         }
 
-        $validated['tanggal_pengiriman'] = $date;
         $validated['over_sisa'] = $validated['slot_pengiriman'] - $validated['permintaan_kirim'];
 
         $slot = SlotDelivery::findOrFail($id);
