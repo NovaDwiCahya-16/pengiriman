@@ -1,3 +1,4 @@
+
 <?php
 
 use Illuminate\Support\Facades\Route;
@@ -7,99 +8,88 @@ use App\Http\Controllers\SlotDeliveryController;
 use App\Http\Controllers\LoginController;
 use App\Http\Controllers\DataRekapController;
 use App\Http\Controllers\ProfileController;
+use App\Models\Request;
+use Carbon\Carbon;
 
 /*
 |--------------------------------------------------------------------------
-| Authentication Routes
+| AUTH & LOGIN / REGISTER / LOGOUT
 |--------------------------------------------------------------------------
 */
-Route::prefix('auth')->group(function () {
-    // Login
-    Route::get('/login', [LoginController::class, 'showLogin'])->name('login');
-    Route::post('/login', [LoginController::class, 'login'])->name('login.submit');
 
-    // Register
-    Route::get('/register', [LoginController::class, 'showRegister'])->name('register');
-    Route::post('/register', [LoginController::class, 'register'])->name('register.submit');
-
-    // Logout
-    Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
-});
+Route::get('/login', [LoginController::class, 'showLogin'])->name('login');
+Route::post('/login', [LoginController::class, 'login'])->name('login.submit');
+Route::get('/register', [LoginController::class, 'showRegister'])->name('register');
+Route::post('/register', [LoginController::class, 'register'])->name('register.submit');
+Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
 /*
 |--------------------------------------------------------------------------
-| Protected Routes (Requires Authentication)
+| ROLE-BASED DASHBOARD (ADMIN / USER)
 |--------------------------------------------------------------------------
 */
+
+Route::get('/requests/cabang/{id}', [RequestController::class, 'showByCabang'])->name('permintaan.percabang');
+Route::middleware(['auth'])->get('/admin/dashboard', function () {
+    return view('dashboard.admin');
+})->name('admin.dashboard');
+Route::middleware(['auth'])->get('/user/dashboard', function () {
+    return view('dashboard.user');
+})->name('user.dashboard');
+
+/*
+|--------------------------------------------------------------------------
+| MAIN ROUTES (Requires Login)
+|--------------------------------------------------------------------------
+*/
+
 Route::middleware('auth')->group(function () {
+
     /*
-    |------------------------------------------------------------------------
-    | Dashboard Routes
-    |------------------------------------------------------------------------
+    |--------------------------------------------------------------------------
+    | DASHBOARD UTAMA
+    |--------------------------------------------------------------------------
     */
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
-    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard.redirect');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    /*
+    |--------------------------------------------------------------------------
+    | PERMINTAAN
+    |--------------------------------------------------------------------------
+    */
+    // Perbaikan route di web.php
+    Route::get('/request', [RequestController::class, 'adminRequest'])->name('requests');
+    Route::get('/manage-request', [RequestController::class, 'manageRequest'])->name('manage.request');
+    Route::post('/store-request', [RequestController::class, 'storeRequest'])->name('store.request');
+    Route::post('/edit-request', [RequestController::class, 'editRequest'])->name('edit.request');
+    Route::post('/delete-request', [RequestController::class, 'deleteRequest'])->name('delete.request');
 
-    // Role-based Dashboard
-    Route::get('/admin/dashboard', fn() => view('dashboard.admin'))->name('admin.dashboard');
-    Route::get('/user/dashboard', fn() => view('dashboard.user'))->name('user.dashboard');
+    // Perbaikan route untuk detail - pastikan path sesuai dengan yang dipanggil Ajax
+    Route::get('/request/{id}/detail', [RequestController::class, 'getRequestDetail'])->name('request.detail');
+    /*
+    |--------------------------------------------------------------------------
+    | SLOT PENGIRIMAN
+    |--------------------------------------------------------------------------
+    */
+    Route::get('/slot-deliveries/create', [SlotDeliveryController::class, 'create'])->name('slot-deliveries.create');
+    Route::post('/slot-deliveries', [SlotDeliveryController::class, 'store'])->name('slot-deliveries.store');
+    Route::resource('slot-deliveries', SlotDeliveryController::class)->except(['create', 'store']);
 
     /*
-    |------------------------------------------------------------------------
-    | Request Management Routes
-    |------------------------------------------------------------------------
+    |--------------------------------------------------------------------------
+    | DATA REKAP
+    |--------------------------------------------------------------------------
     */
-    Route::prefix('requests')->group(function () {
-        // Create Request
-        Route::get('/create', [RequestController::class, 'create'])->name('requests.create');
-        Route::post('/', [RequestController::class, 'store'])->name('requests.store');
-
-        // Request Details & Actions
-        Route::get('/{id}/show', [RequestController::class, 'show'])->name('requests.show');
-        Route::get('/preview/{id}', [RequestController::class, 'preview'])->name('requests.preview');
-        Route::get('/download/{filename}', [RequestController::class, 'download'])->name('requests.download');
-        Route::match(['patch', 'put'], '/{id}/status', [RequestController::class, 'updateStatus'])->name('requests.updateStatus');
-        Route::get('/cabang/{id}', [RequestController::class, 'showByCabang'])->name('requests.percabang');
-
-        // CRUD Operations
-        Route::resource('/', RequestController::class)->except(['create', 'store'])->parameter('', 'request');
-    });
+    Route::get('/datarekaps/create', [DataRekapController::class, 'create'])->name('datarekaps.create');
+    Route::post('/datarekaps', [DataRekapController::class, 'store'])->name('datarekaps.store');
+    Route::resource('datarekaps', DataRekapController::class)->except(['create', 'store']);
 
     /*
-    |------------------------------------------------------------------------
-    | Slot Delivery Routes
-    |------------------------------------------------------------------------
+    |--------------------------------------------------------------------------
+    | PROFILE
+    |--------------------------------------------------------------------------
     */
-    Route::prefix('slot-deliveries')->group(function () {
-        // Create Slot
-        Route::get('/create', [SlotDeliveryController::class, 'create'])->name('slot-deliveries.create');
-        Route::post('/', [SlotDeliveryController::class, 'store'])->name('slot-deliveries.store');
-
-        // CRUD Operations
-        Route::resource('/', SlotDeliveryController::class)->except(['create', 'store'])->parameter('', 'slot_delivery');
-    });
-
-    /*
-    |------------------------------------------------------------------------
-    | Data Rekap Routes
-    |------------------------------------------------------------------------
-    */
-    Route::prefix('datarekaps')->group(function () {
-        // Create Rekap
-        Route::get('/create', [DataRekapController::class, 'create'])->name('datarekaps.create');
-        Route::post('/', [DataRekapController::class, 'store'])->name('datarekaps.store');
-
-        // CRUD Operations
-        Route::resource('/', DataRekapController::class)->except(['create', 'store'])->parameter('', 'datarekap');
-    });
-
-    /*
-    |------------------------------------------------------------------------
-    | Profile Routes
-    |------------------------------------------------------------------------
-    */
-    Route::prefix('profile')->group(function () {
-        Route::get('/edit', [ProfileController::class, 'edit'])->name('profile.edit');
-        Route::post('/update', [ProfileController::class, 'update'])->name('profile.update');
-    });
+    Route::get('/edit-profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::post('/edit-profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::get('/requests/preview/{id}', [RequestController::class, 'preview'])->name('requests.preview');
 });

@@ -1,16 +1,33 @@
-
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@yield('title', 'Sistem Pengiriman Unit Gudang Cimanggis 2')</title>
     <link rel="icon" type="image/png" href="{{ asset('logo/logo.png') }}" sizes="32x32">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
+    <!-- ========== All CSS files linkup ========= -->
+    <link rel="icon" href="{{ asset('favicon2.png') }}">
+    <link rel="stylesheet" href="{{ asset('css/bootstrap.min.css') }}" />
+    <link rel="stylesheet" href="{{ asset('css/lineicons.css') }}" />
+    <link rel="stylesheet" href="{{ asset('css/main.css') }}" />
+    <link rel="stylesheet" href="{{ asset('css/custom.css') }}" />
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" />
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0/dist/chartjs-plugin-datalabels.min.js">
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
     @stack('styles')
     <style>
-        html, body {
+        html,
+        body {
             margin: 0;
             padding: 0;
             height: 100%;
@@ -18,11 +35,13 @@
             background-color: #f5f7fa;
             color: #1a1a1a;
         }
+
         .wrapper {
             display: flex;
             height: 100vh;
             overflow: hidden;
         }
+
         .sidebar {
             width: 260px;
             background-color: #0d1b2a;
@@ -36,10 +55,12 @@
             transition: all 0.3s ease;
             box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
         }
+
         .sidebar.collapsed {
             width: 80px;
             padding: 25px 10px;
         }
+
         .main-content {
             margin-left: 260px;
             flex-grow: 1;
@@ -49,19 +70,23 @@
             transition: all 0.3s ease;
             background-color: #f5f7fa;
         }
-        .collapsed + .main-content {
+
+        .collapsed+.main-content {
             margin-left: 80px;
         }
+
         .toggle-btn {
             text-align: right;
             margin-bottom: 20px;
         }
+
         .toggle-btn button {
             border: none;
             background: none;
             font-size: 20px;
             color: #ccc;
         }
+
         .user-info {
             text-align: center;
             font-size: 14px;
@@ -70,21 +95,27 @@
             padding-bottom: 15px;
             position: relative;
         }
-        .user-info img, .user-info i {
+
+        .user-info img,
+        .user-info i {
             width: 60px;
             height: 60px;
             object-fit: cover;
             border-radius: 50%;
             margin-bottom: 8px;
         }
+
         .user-info i {
             font-size: 48px;
             color: #fff;
         }
-        .user-info strong, .user-info small {
+
+        .user-info strong,
+        .user-info small {
             display: block;
             color: #fff;
         }
+
         .sidebar a {
             color: #d6d6d6;
             text-decoration: none;
@@ -95,26 +126,32 @@
             margin-bottom: 10px;
             transition: background-color 0.2s ease, color 0.2s ease;
         }
+
         .sidebar a:hover {
             background-color: #1c2b3a;
             color: #ffffff;
         }
+
         .sidebar a.active {
             background-color: #1c2b3a;
             color: #ffffff;
             font-weight: 600;
         }
+
         .sidebar a i {
             margin-right: 10px;
             font-size: 18px;
             width: 20px;
         }
+
         .sidebar a span {
             transition: 0.3s;
         }
+
         .sidebar.collapsed a span {
             display: none;
         }
+
         .flash-alert {
             position: fixed;
             top: 20px;
@@ -126,98 +163,106 @@
 </head>
 
 <body>
-<div class="wrapper">
-    <!-- Sidebar -->
-    <div class="sidebar" id="sidebar">
-        <div class="toggle-btn">
-            <button onclick="toggleSidebar()">
-                <i class="bi bi-chevron-left" id="toggle-icon"></i>
-            </button>
-        </div>
-
-        @auth
-        <div class="user-info">
-            @if(Auth::user()->type != 1)
-                <a href="{{ route('profile.edit') }}" class="edit-btn" title="Edit Profil" style="position:absolute; top:5px; right:5px;">
-                    <i class="bi bi-pencil-square text-info"></i>
-                </a>
-            @endif
-            @if (Auth::user()->profile_photo)
-                <img src="{{ asset('storage/' . Auth::user()->profile_photo) }}" alt="Foto Profil">
-            @else
-                <i class="bi bi-person-circle"></i>
-            @endif
-            <strong>{{ Auth::user()->name }}</strong>
-            <small>{{ Auth::user()->email }}</small>
-        </div>
-        @endauth
-
-        <a href="{{ url('/') }}" class="{{ request()->is('/') ? 'active' : '' }}">
-            <i class="bi bi-speedometer2"></i><span>Dashboard</span>
-        </a>
-
-        <a href="{{ route('requests.create') }}" class="{{ request()->routeIs('requests.create') ? 'active' : '' }}">
-            <i class="bi bi-plus-circle"></i><span>Tambah Permintaan</span>
-        </a>
-
-        @auth
-        @if(Auth::user()->type == 1)
-            <a href="{{ route('datarekaps.create') }}" class="{{ request()->routeIs('datarekaps.create') ? 'active' : '' }}">
-                <i class="bi bi-journal-plus"></i><span>Tambah Data Rekap</span>
-            </a>
-            <a href="{{ route('slot-deliveries.create') }}" class="{{ request()->routeIs('slot-deliveries.create') ? 'active' : '' }}">
-                <i class="bi bi-plus-square-dotted"></i><span>Tambah Slot</span>
-            </a>
-        @endif
-        @endauth
-
-        <a href="{{ route('requests.index') }}" class="{{ request()->routeIs('requests.index') ? 'active' : '' }}">
-            <i class="bi bi-folder2-open"></i><span>Data Permintaan</span>
-        </a>
-        <a href="{{ route('datarekaps.index') }}" class="{{ request()->routeIs('datarekaps.index') ? 'active' : '' }}">
-            <i class="bi bi-journal-text"></i><span>Data Rekap</span>
-        </a>
-        <a href="{{ route('slot-deliveries.index') }}" class="{{ request()->routeIs('slot-deliveries.index') ? 'active' : '' }}">
-            <i class="bi bi-truck"></i><span>Slot Pengiriman</span>
-        </a>
-
-        <a href="#" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
-            <i class="bi bi-box-arrow-right"></i><span>Logout</span>
-        </a>
-        <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">@csrf</form>
-    </div>
-
-    <!-- Main Content -->
-    <div class="main-content">
-        @if (session('success'))
-            <div class="alert alert-success alert-dismissible fade show flash-alert" role="alert" id="flash-alert">
-                {{ session('success') }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    <div class="wrapper">
+        <!-- Sidebar -->
+        <div class="sidebar" id="sidebar">
+            <div class="toggle-btn">
+                <button onclick="toggleSidebar()">
+                    <i class="bi bi-chevron-left" id="toggle-icon"></i>
+                </button>
             </div>
-        @endif
 
-        @yield('content')
+            @auth
+                <div class="user-info">
+                    @if (Auth::user()->type != 1)
+                        <a href="{{ route('profile.edit') }}" class="edit-btn" title="Edit Profil"
+                            style="position:absolute; top:5px; right:5px;">
+                            <i class="bi bi-pencil-square text-info"></i>
+                        </a>
+                    @endif
+                    @if (Auth::user()->profile_photo)
+                        <img src="{{ asset('storage/' . Auth::user()->profile_photo) }}" alt="Foto Profil">
+                    @else
+                        <i class="bi bi-person-circle"></i>
+                    @endif
+                    <strong>{{ Auth::user()->name }}</strong>
+                    <small>{{ Auth::user()->email }}</small>
+                </div>
+            @endauth
+
+            <a href="{{ url('/') }}" class="{{ request()->is('/') ? 'active' : '' }}">
+                <i class="bi bi-speedometer2"></i><span>Dashboard</span>
+            </a>
+
+            @auth
+                @if (Auth::user()->type == 1)
+                    <a href="{{ route('datarekaps.create') }}"
+                        class="{{ request()->routeIs('datarekaps.create') ? 'active' : '' }}">
+                        <i class="bi bi-journal-plus"></i><span>Tambah Data Rekap</span>
+                    </a>
+                    <a href="{{ route('slot-deliveries.create') }}"
+                        class="{{ request()->routeIs('slot-deliveries.create') ? 'active' : '' }}">
+                        <i class="bi bi-plus-square-dotted"></i><span>Tambah Slot</span>
+                    </a>
+                @endif
+            @endauth
+
+            <a href="{{ route('requests') }}" class="{{ request()->routeIs('requests') ? 'active' : '' }}">
+                <i class="bi bi-folder2-open"></i><span>Data Permintaan</span>
+            </a>
+            <a href="{{ route('datarekaps.index') }}"
+                class="{{ request()->routeIs('datarekaps.index') ? 'active' : '' }}">
+                <i class="bi bi-journal-text"></i><span>Data Rekap</span>
+            </a>
+            <a href="{{ route('slot-deliveries.index') }}"
+                class="{{ request()->routeIs('slot-deliveries.index') ? 'active' : '' }}">
+                <i class="bi bi-truck"></i><span>Slot Pengiriman</span>
+            </a>
+
+            <a href="#" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
+                <i class="bi bi-box-arrow-right"></i><span>Logout</span>
+            </a>
+            <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">@csrf</form>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            @if (session('success'))
+                <div class="alert alert-success alert-dismissible fade show flash-alert" role="alert"
+                    id="flash-alert">
+                    {{ session('success') }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            @endif
+
+            @yield('content')
+        </div>
     </div>
-</div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-    setTimeout(() => {
-        const alert = document.getElementById('flash-alert');
-        if (alert) {
-            const bsAlert = bootstrap.Alert.getOrCreateInstance(alert);
-            bsAlert.close();
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        setTimeout(() => {
+            const alert = document.getElementById('flash-alert');
+            if (alert) {
+                const bsAlert = bootstrap.Alert.getOrCreateInstance(alert);
+                bsAlert.close();
+            }
+        }, 4000);
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const icon = document.getElementById('toggle-icon');
+            sidebar.classList.toggle('collapsed');
+            icon.classList.toggle('bi-chevron-left');
+            icon.classList.toggle('bi-chevron-right');
         }
-    }, 4000);
-
-    function toggleSidebar() {
-        const sidebar = document.getElementById('sidebar');
-        const icon = document.getElementById('toggle-icon');
-        sidebar.classList.toggle('collapsed');
-        icon.classList.toggle('bi-chevron-left');
-        icon.classList.toggle('bi-chevron-right');
-    }
-</script>
-@stack('scripts')
+    </script>
+    <script src="{{ asset('js/bootstrap.bundle.min.js') }}"></script>
+    <script src="{{ asset('js/Chart.min.js') }}"></script>
+    <script src="{{ asset('js/moment.min.js') }}"></script>
+    <script src="{{ asset('js/main.js') }}"></script>
+    <script src="{{ asset('js/custom.js') }}"></script>
+    @stack('scripts')
 </body>
+
 </html>
