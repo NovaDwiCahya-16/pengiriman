@@ -63,8 +63,6 @@ Route::middleware('auth')->group(function () {
     Route::post('/store-request', [RequestController::class, 'storeRequest'])->name('store.request');
     Route::post('/edit-request', [RequestController::class, 'editRequest'])->name('edit.request');
     Route::post('/delete-request', [RequestController::class, 'deleteRequest'])->name('delete.request');
-
-    // Perbaikan route untuk detail - pastikan path sesuai dengan yang dipanggil Ajax
     Route::get('/request/{id}/detail', [RequestController::class, 'getRequestDetail'])->name('request.detail');
     /*
     |--------------------------------------------------------------------------
