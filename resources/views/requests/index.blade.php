@@ -200,9 +200,8 @@
                         },
                         {
                             data: 'branch_id',
-                            name: 'branch.city',
+                            name: 'branch.name',
                             render: function(data, type, row) {
-                                // Pastikan hanya menampilkan teks cabang, bukan HTML
                                 return data || '-';
                             }
                         },
@@ -219,40 +218,10 @@
                             name: 'status'
                         },
                         {
-                            data: null,
-                            className: "text-center",
+                            data: 'action',
+                            name: 'action',
                             orderable: false,
-                            searchable: false,
-                            render: function(data, type, row) {
-                                // Ambil data mentah untuk tombol (tanpa HTML formatting)
-                                const cleanId = row.id || '';
-                                const cleanBranchId = row.branch_id || '';
-                                const cleanDate = row.date || '';
-                                const cleanUnit = row.unit || '';
-                                // Untuk status, ambil dari data asli jika ada
-                                const cleanStatus = (row.action && row.action.status) ? row
-                                    .action.status :
-                                    (row.status ? row.status.replace(/<[^>]*>/g, '') : '');
-
-                                return `
-                            <div class="btn-group">
-                                <button class="btn btn-sm btn-primary me-1 rounded editBtn" 
-                                        data-id="${cleanId}" 
-                                        data-branch_id="${cleanBranchId}" 
-                                        data-date="${cleanDate}" 
-                                        data-unit="${cleanUnit}" 
-                                        data-status="${cleanStatus}"
-                                        title="Edit">
-                                    <i class="fa fa-edit"></i>
-                                </button>
-                                <button class="btn btn-sm btn-danger me-1 rounded deleteBtn" 
-                                        data-id="${cleanId}"
-                                        title="Hapus">
-                                    <i class="fa fa-trash"></i>
-                                </button>
-                            </div>
-                        `;
-                            }
+                            searchable: false
                         }
                     ],
                     language: {
@@ -274,52 +243,60 @@
                     }
                 });
 
-                // Open edit modal - dengan fallback jika Ajax gagal
-                $(document).on('click', '.editBtn', function() {
+                // Open edit modal - dengan pengambilan data yang diperbaiki
+                $(document).on('click', '.editBtn', function(e) {
+                    e.preventDefault();
                     const $btn = $(this);
                     const id = $btn.data('id');
+
+                    console.log('Edit button clicked for ID:', id);
 
                     // Clear previous errors
                     $('.text-danger').hide();
 
-                    // Ambil data dari atribut tombol
-                    const fallbackData = {
-                        id: id,
+                    // Ambil data langsung dari atribut button
+                    const buttonData = {
+                        id: $btn.data('id'),
                         branch_id: $btn.data('branch_id'),
                         date: $btn.data('date'),
                         unit: $btn.data('unit'),
-                        status: $btn.data('status')
+                        status: $btn.data('status'),
+                        branch_name: $btn.data('branch_name')
                     };
 
-                    console.log('Button data:', fallbackData);
+                    console.log('Button data:', buttonData);
 
-                    // Bersihkan status dari HTML tags jika ada
-                    if (fallbackData.status) {
-                        fallbackData.status = fallbackData.status.replace(/<[^>]*>/g, '').trim();
-                    }
+                    // Validasi data dari button
+                    if (buttonData.id && buttonData.branch_id && buttonData.date &&
+                        buttonData.unit && buttonData.status) {
 
-                    // Jika data fallback lengkap, gunakan langsung
-                    if (fallbackData.branch_id && fallbackData.date && fallbackData.unit &&
-                        fallbackData.status) {
-                        console.log('Using fallback data:', fallbackData);
-                        populateEditModal(fallbackData);
+                        console.log('Using button data - all fields present');
+                        populateEditModal(buttonData);
                         $('#editModal').modal('show');
                         return;
                     }
 
-                    // Jika tidak, coba Ajax
+                    // Jika data button tidak lengkap, coba ambil via Ajax
+                    console.log('Button data incomplete, trying Ajax...');
+
+                    // Tampilkan loading
+                    showLoadingInModal();
+                    $('#editModal').modal('show');
+
                     $.ajax({
                         url: `/admin/request/${id}/detail`,
                         type: 'GET',
-                        timeout: 10000, // 10 detik timeout
+                        timeout: 10000,
                         success: function(response) {
-                            console.log('Ajax response:', response);
-                            if (response.success) {
+                            console.log('Ajax success:', response);
+                            hideLoadingInModal();
+
+                            if (response.success && response.data) {
                                 populateEditModal(response.data);
-                                $('#editModal').modal('show');
                             } else {
-                                alert('Gagal memuat data request: ' + (response
-                                    .message || 'Unknown error'));
+                                $('#editModal').modal('hide');
+                                showAlert('error', 'Gagal memuat data request: ' + (
+                                    response.message || 'Data tidak ditemukan'));
                             }
                         },
                         error: function(xhr, status, error) {
@@ -329,42 +306,91 @@
                                 response: xhr.responseText
                             });
 
-                            // Jika Ajax gagal, coba gunakan data dari row tabel
-                            const rowData = dataTable.row($btn.parents('tr')).data();
-                            if (rowData) {
-                                console.log('Using row data as fallback:', rowData);
-                                const cleanRowData = {
-                                    id: rowData.id,
-                                    branch_id: rowData.branch_id,
-                                    date: rowData.date,
-                                    unit: rowData.unit,
-                                    status: rowData.status ? rowData.status.replace(
-                                        /<[^>]*>/g, '').trim() : ''
-                                };
-                                populateEditModal(cleanRowData);
-                                $('#editModal').modal('show');
-                            } else {
-                                alert(
-                                    'Terjadi kesalahan saat memuat data. Silakan refresh halaman dan coba lagi.'
-                                    );
-                            }
+                            hideLoadingInModal();
+                            $('#editModal').modal('hide');
+                            showAlert('error',
+                                'Terjadi kesalahan saat memuat data. Silakan refresh halaman dan coba lagi.'
+                                );
                         }
                     });
                 });
 
+                // Function untuk menampilkan loading di modal
+                function showLoadingInModal() {
+                    $('#requestId').val('');
+                    $('#branch_id').val('');
+                    $('#date').val('');
+                    $('#unit').val('');
+                    $('#status').val('');
+
+                    // Tampilkan loading message
+                    $('.modal-body').prepend(
+                        '<div id="loading-message" class="text-center mb-3"><i class="fa fa-spinner fa-spin"></i> Memuat data...</div>'
+                        );
+                }
+
+                // Function untuk menyembunyikan loading di modal
+                function hideLoadingInModal() {
+                    $('#loading-message').remove();
+                }
+
                 // Function untuk populate edit modal
                 function populateEditModal(data) {
-                    $('#requestId').val(data.id);
-                    $('#branch_id').val(data.branch_id);
-                    $('#date').val(data.date);
-                    $('#unit').val(data.unit);
-                    $('#status').val(data.status);
+                    console.log('Populating modal with data:', data);
+
+                    $('#requestId').val(data.id || '');
+                    $('#branch_id').val(data.branch_id || '');
+                    $('#date').val(data.date || '');
+                    $('#unit').val(data.unit || '');
+                    $('#status').val(data.status || '');
+
+                    // Log untuk debugging
+                    console.log('Modal populated:', {
+                        id: $('#requestId').val(),
+                        branch_id: $('#branch_id').val(),
+                        date: $('#date').val(),
+                        unit: $('#unit').val(),
+                        status: $('#status').val()
+                    });
+                }
+
+                // Function untuk menampilkan alert
+                function showAlert(type, message) {
+                    const alertClass = type === 'error' ? 'alert-danger' : 'alert-success';
+                    const alertHtml = `
+                <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            `;
+                    $('body').prepend(alertHtml);
+                    $('html, body').animate({
+                        scrollTop: 0
+                    }, 500);
                 }
 
                 // Submit edit
-                $('#updateBtn').click(function() {
+                $('#updateBtn').click(function(e) {
+                    e.preventDefault();
                     const $btn = $(this);
                     const originalText = $btn.html();
+
+                    // Validasi client-side
+                    const formData = {
+                        id: $('#requestId').val(),
+                        branch_id: $('#branch_id').val(),
+                        date: $('#date').val(),
+                        unit: $('#unit').val(),
+                        status: $('#status').val()
+                    };
+
+                    console.log('Form data to submit:', formData);
+
+                    if (!formData.id || !formData.branch_id || !formData.date || !formData.unit || !
+                        formData.status) {
+                        showAlert('error', 'Semua field harus diisi!');
+                        return;
+                    }
 
                     // Disable button dan ubah text
                     $btn.prop('disabled', true).html(
@@ -378,40 +404,30 @@
                         type: 'POST',
                         data: {
                             _token: '{{ csrf_token() }}',
-                            id: $('#requestId').val(),
-                            branch_id: $('#branch_id').val(),
-                            date: $('#date').val(),
-                            unit: $('#unit').val(),
-                            status: $('#status').val()
+                            ...formData
                         },
                         success: function(response) {
+                            console.log('Update success:', response);
                             $('#editModal').modal('hide');
-                            dataTable.ajax.reload();
+                            dataTable.ajax.reload(null,
+                            false); // Reload tanpa reset pagination
 
                             // Show success message
-                            const alertHtml = `
-                        <div class="alert alert-success alert-dismissible fade show" role="alert">
-                            ${response.message}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                        </div>
-                    `;
-                            $('body').prepend(alertHtml);
-
-                            // Scroll ke atas
-                            $('html, body').animate({
-                                scrollTop: 0
-                            }, 500);
+                            showAlert('success', response.message ||
+                                'Request berhasil diupdate!');
                         },
                         error: function(xhr) {
+                            console.error('Update error:', xhr);
+
                             if (xhr.status === 422) {
+                                // Validation errors
                                 const errors = xhr.responseJSON.errors;
                                 Object.keys(errors).forEach(field => {
                                     $(`#edit-error-${field}`).text(errors[field]
                                         [0]).show();
                                 });
                             } else {
-                                console.error('Update error:', xhr);
-                                alert(
+                                showAlert('error',
                                     'Terjadi kesalahan saat mengupdate data. Silakan coba lagi.'
                                     );
                             }
@@ -423,27 +439,29 @@
                     });
                 });
 
-                // Delete modal
+                // Delete modal dengan data yang diperbaiki
                 $(document).on('click', '.deleteBtn', function() {
-                    const id = $(this).data('id');
-                    const row = dataTable.row($(this).parents('tr')).data();
+                    const $btn = $(this);
+                    const id = $btn.data('id');
 
                     $('#delete_request_id').val(id);
 
-                    if (row) {
-                        // Bersihkan HTML dari status
-                        const cleanStatus = row.status ? row.status.replace(/<[^>]*>/g, '').trim() :
-                            'N/A';
+                    // Ambil data dari atribut button untuk detail
+                    const deleteDetails = {
+                        branch_name: $btn.data('branch_name') || 'N/A',
+                        date: $btn.data('date') || 'N/A',
+                        unit: $btn.data('unit') || 'N/A',
+                        status: $btn.data('status') || 'N/A'
+                    };
 
-                        $('#delete-details').html(`
-                    <div class="alert alert-info">
-                        <strong>Cabang:</strong> ${row.branch_id || 'N/A'}<br>
-                        <strong>Tanggal:</strong> ${row.date || 'N/A'}<br>
-                        <strong>Unit:</strong> ${row.unit || 'N/A'}<br>
-                        <strong>Status:</strong> ${cleanStatus}
-                    </div>
-                `);
-                    }
+                    $('#delete-details').html(`
+                <div class="alert alert-info">
+                    <strong>Cabang:</strong> ${deleteDetails.branch_name}<br>
+                    <strong>Tanggal:</strong> ${deleteDetails.date}<br>
+                    <strong>Unit:</strong> ${deleteDetails.unit}<br>
+                    <strong>Status:</strong> ${deleteDetails.status}
+                </div>
+            `);
 
                     $('#deleteRequestModal').modal('show');
                 });

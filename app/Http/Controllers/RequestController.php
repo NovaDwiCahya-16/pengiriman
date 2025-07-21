@@ -38,6 +38,9 @@ class RequestController extends Controller
                     ->editColumn('date', function ($row) {
                         return Carbon::parse($row->date)->format('d/m/Y');
                     })
+                    ->editColumn('unit', function ($row) {
+                        return number_format($row->unit, 0, ',', '.');
+                    })
                     ->editColumn('status', function ($row) {
                         $badgeClass = match ($row->status) {
                             'Menunggu' => 'bg-warning',
@@ -52,16 +55,41 @@ class RequestController extends Controller
                         return $row->created_at->format('d/m/Y H:i');
                     })
                     ->addColumn('action', function ($row) {
-                        // Pastikan data yang dikirim ke tombol bersih
-                        return [
+                        // Pastikan data yang dikirim ke tombol bersih dan dalam format yang benar
+                        $editData = [
                             'id' => $row->id,
                             'branch_id' => $row->branch_id,
-                            'date' => $row->date, // Format asli untuk form
+                            'date' => Carbon::parse($row->date)->format('Y-m-d'),
                             'unit' => $row->unit,
-                            'status' => $row->status // Status asli tanpa HTML
+                            'status' => $row->status,
+                            'branch_name' => $row->branch ? $row->branch->name : 'N/A'
                         ];
+
+                        return '
+                        <div class="btn-group">
+                            <button class="btn btn-sm btn-primary me-1 rounded editBtn" 
+                                    data-id="' . $editData['id'] . '" 
+                                    data-branch_id="' . $editData['branch_id'] . '" 
+                                    data-date="' . $editData['date'] . '" 
+                                    data-unit="' . $editData['unit'] . '" 
+                                    data-status="' . $editData['status'] . '"
+                                    data-branch_name="' . $editData['branch_name'] . '"
+                                    title="Edit">
+                                <i class="fa fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-danger me-1 rounded deleteBtn" 
+                                    data-id="' . $editData['id'] . '"
+                                    data-branch_name="' . $editData['branch_name'] . '"
+                                    data-date="' . Carbon::parse($editData['date'])->format('d/m/Y') . '"
+                                    data-unit="' . number_format($editData['unit'], 0, ',', '.') . '"
+                                    data-status="' . $editData['status'] . '"
+                                    title="Hapus">
+                                <i class="fa fa-trash"></i>
+                            </button>
+                        </div>
+                    ';
                     })
-                    ->rawColumns(['status']) // Hanya status yang mengandung HTML
+                    ->rawColumns(['status', 'action']) // Kedua kolom ini mengandung HTML
                     ->make(true);
             } catch (\Exception $e) {
                 Log::error('Error in manageRequest:', [
@@ -375,25 +403,46 @@ class RequestController extends Controller
         }
     }
 
-    // Perbaikan method getRequestDetail di RequestController
     public function getRequestDetail($id)
     {
         try {
-            $request = RequestModel::with('branch')->findOrFail($id);
+            // Validasi ID
+            if (!$id || !is_numeric($id)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'ID request tidak valid'
+                ], 400);
+            }
+
+            $request = RequestModel::with('branch')->find($id);
+
+            if (!$request) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Request tidak ditemukan'
+                ], 404);
+            }
 
             // Format data untuk response
             $data = [
                 'id' => $request->id,
                 'branch_id' => $request->branch_id,
-                'date' => $request->date,
+                'date' => $request->date, // Pastikan format Y-m-d
                 'unit' => $request->unit,
                 'status' => $request->status,
-                'branch_name' => $request->branch ? $request->branch->name : 'N/A'
+                'branch_name' => $request->branch ? $request->branch->name : 'N/A',
+                'formatted_date' => Carbon::parse($request->date)->format('d/m/Y')
             ];
+
+            Log::info('Request detail retrieved successfully:', [
+                'request_id' => $id,
+                'data' => $data
+            ]);
 
             return response()->json([
                 'success' => true,
-                'data' => $data
+                'data' => $data,
+                'message' => 'Data berhasil dimuat'
             ]);
         } catch (\Exception $e) {
             Log::error('Error getting request detail:', [
@@ -404,8 +453,8 @@ class RequestController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Request tidak ditemukan: ' . $e->getMessage()
-            ], 404);
+                'message' => 'Terjadi kesalahan saat memuat data: ' . $e->getMessage()
+            ], 500);
         }
     }
 }
