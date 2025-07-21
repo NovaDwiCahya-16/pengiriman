@@ -111,8 +111,7 @@ class RequestController extends Controller
             }
 
             // Cari branch dengan pencarian yang lebih fleksibel
-            $branch = Branch::where('city', 'like', '%' . trim($excelData['branch_name']) . '%')
-                ->orWhere('location', 'like', '%' . trim($excelData['branch_name']) . '%')
+            $branch = Branch::where('name', 'like', '%' . trim($excelData['branch_name']) . '%')
                 ->first();
 
             if (!$branch) {
@@ -120,8 +119,7 @@ class RequestController extends Controller
                 $searchTerms = explode(' ', trim($excelData['branch_name']));
                 foreach ($searchTerms as $term) {
                     if (strlen($term) > 3) { // Hanya gunakan kata dengan panjang > 3
-                        $branch = Branch::where('city', 'like', '%' . $term . '%')
-                            ->orWhere('location', 'like', '%' . $term . '%')
+                        $branch = Branch::where('name', 'like', '%' . $term . '%')
                             ->first();
                         if ($branch) break;
                     }
@@ -129,7 +127,7 @@ class RequestController extends Controller
             }
 
             if (!$branch) {
-                return redirect()->back()->with('error', 'Cabang "' . $excelData['branch_name'] . '" tidak ditemukan di database! Cabang yang tersedia: ' . Branch::pluck('city')->implode(', '));
+                return redirect()->back()->with('error', 'Cabang "' . $excelData['branch_name'] . '" tidak ditemukan di database! Cabang yang tersedia: ' . Branch::pluck('name')->implode(', '));
             }
 
             // Cek apakah sudah ada request dengan data yang sama

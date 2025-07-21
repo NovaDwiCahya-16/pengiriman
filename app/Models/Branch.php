@@ -6,10 +6,10 @@ use Illuminate\Database\Eloquent\Model;
 
 class Branch extends Model
 {
-    protected $fillable = ['location', 'city'];
+    protected $fillable = ['city', 'name', 'address'];
 
     public function requests()
     {
-        return $this->hasMany(Request::class);
+        return $this->hasMany(RequestModel::class);
     }
 }
