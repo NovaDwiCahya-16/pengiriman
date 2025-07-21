@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\SlotDelivery;
 use Illuminate\Support\Facades\Auth;
-use Carbon\Carbon;
 
 class SlotDeliveryController extends Controller
 {
@@ -17,6 +16,7 @@ class SlotDeliveryController extends Controller
 
     public function create()
     {
+        // Hanya admin (type = 1) yang bisa akses
         if (Auth::user()->type !== 1) {
             abort(403, 'Akses ditolak. Hanya admin yang bisa menambah data.');
         }
@@ -37,26 +37,15 @@ class SlotDeliveryController extends Controller
         ], [
             'tanggal_pengiriman.required' => 'Tanggal pengiriman wajib diisi.',
             'tanggal_pengiriman.date' => 'Format tanggal pengiriman tidak valid.',
+
             'slot_pengiriman.required' => 'Slot pengiriman wajib diisi.',
             'slot_pengiriman.integer' => 'Slot pengiriman harus berupa angka.',
             'slot_pengiriman.min' => 'Slot pengiriman minimal 0.',
+
             'permintaan_kirim.required' => 'Permintaan kirim wajib diisi.',
             'permintaan_kirim.integer' => 'Permintaan kirim harus berupa angka.',
             'permintaan_kirim.min' => 'Permintaan kirim minimal 0.',
         ]);
-
-        $date = Carbon::parse($validated['tanggal_pengiriman']);
-
-        // Cek apakah sudah ada slot untuk bulan & tahun yang sama
-        $existing = SlotDelivery::whereMonth('tanggal_pengiriman', $date->month)
-            ->whereYear('tanggal_pengiriman', $date->year)
-            ->first();
-
-        if ($existing) {
-            return redirect()->back()->withErrors([
-                'tanggal_pengiriman' => 'Slot untuk bulan ' . $date->translatedFormat('F Y') . ' sudah ada.'
-            ])->withInput();
-        }
 
         $validated['over_sisa'] = $validated['slot_pengiriman'] - $validated['permintaan_kirim'];
 
@@ -88,27 +77,15 @@ class SlotDeliveryController extends Controller
         ], [
             'tanggal_pengiriman.required' => 'Tanggal pengiriman wajib diisi.',
             'tanggal_pengiriman.date' => 'Format tanggal pengiriman tidak valid.',
+
             'slot_pengiriman.required' => 'Slot pengiriman wajib diisi.',
             'slot_pengiriman.integer' => 'Slot pengiriman harus berupa angka.',
             'slot_pengiriman.min' => 'Slot pengiriman minimal 0.',
+
             'permintaan_kirim.required' => 'Permintaan kirim wajib diisi.',
             'permintaan_kirim.integer' => 'Permintaan kirim harus berupa angka.',
             'permintaan_kirim.min' => 'Permintaan kirim minimal 0.',
         ]);
-
-        $date = Carbon::parse($validated['tanggal_pengiriman']);
-
-        // Cek apakah bulan ini sudah ada slot selain ID saat ini
-        $existing = SlotDelivery::whereMonth('tanggal_pengiriman', $date->month)
-            ->whereYear('tanggal_pengiriman', $date->year)
-            ->where('id', '!=', $id)
-            ->first();
-
-        if ($existing) {
-            return redirect()->back()->withErrors([
-                'tanggal_pengiriman' => 'Slot untuk bulan ' . $date->translatedFormat('F Y') . ' sudah ada.'
-            ])->withInput();
-        }
 
         $validated['over_sisa'] = $validated['slot_pengiriman'] - $validated['permintaan_kirim'];
 

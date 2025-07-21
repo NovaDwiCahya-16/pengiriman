@@ -110,7 +110,7 @@
 <div class="action-buttons">
     <a href="{{ route('requests.index') }}" class="dashboard-link btn-purple"><i class="bi bi-eye"></i> Lihat Data Permintaan</a>
     <a href="{{ route('datarekaps.index') }}" class="dashboard-link btn-green"><i class="bi bi-eye"></i> Lihat Data Rekap</a>
-    <a href="{{ route('slot-deliveries.index') }}" class="dashboard-link btn-orange"><i class="bi bi-truck"></i> Lihat Slot Pengiriman</a>
+    <a href="{{ route('slot-delivery.index') }}" class="dashboard-link btn-orange"><i class="bi bi-truck"></i> Lihat Slot Pengiriman</a>
 </div>
 
 <div class="summary-grid">

@@ -47,6 +47,8 @@ class RequestModel extends Model
         return $query->whereBetween('date', [$startDate, $endDate]);
     }
 
+   
+
     // Accessor untuk format tanggal Indonesia
     public function getFormattedDateAttribute()
     {

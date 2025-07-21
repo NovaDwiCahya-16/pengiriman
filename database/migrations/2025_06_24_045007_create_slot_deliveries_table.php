@@ -4,28 +4,24 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
+class CreateSlotDeliveriesTable extends Migration
 {
-    /**
-     * Run the migrations.
-     */
-    public function up(): void
+    public function up()
     {
-        Schema::create('slot_deliveries', function (Blueprint $table) {
-            $table->id();
-            $table->date('tanggal_pengiriman');
-            $table->integer('permintaan_kirim');
-            $table->integer('slot_pengiriman');
-            $table->integer('over_sisa')->nullable();
-            $table->timestamps(); // created_at & updated_at
-        });
+       Schema::create('slot_deliveries', function (Blueprint $table) {
+    $table->id();
+    $table->string('tanggalPengiriman'); // contoh: "Juli 2025"
+    $table->integer('permintaan_kirim');
+    $table->integer('slot_pengiriman');
+    $table->string('over_sisa'); // bisa positif atau negatif, bebas string
+    $table->timestamps();
+});
+
     }
 
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
+    public function down()
     {
         Schema::dropIfExists('slot_deliveries');
     }
-};
+}
+

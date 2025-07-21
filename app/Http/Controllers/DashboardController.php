@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Datarekap;
-use App\Models\Request as Permintaan;
+use App\Models\RequestModel as Permintaan;
 use App\Models\Branch;
 use Illuminate\Support\Facades\DB;
 

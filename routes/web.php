@@ -69,8 +69,9 @@ Route::middleware('auth')->group(function () {
     | SLOT PENGIRIMAN
     |--------------------------------------------------------------------------
     */
-    Route::get('/slot-deliveries/create', [SlotDeliveryController::class, 'create'])->name('slot-deliveries.create');
-    Route::post('/slot-deliveries', [SlotDeliveryController::class, 'store'])->name('slot-deliveries.store');
+    Route::get('/slot-deliveries', [SlotDeliveryController::class, 'index'])->name('slot-delivery.index');
+    Route::get('/slot-deliveries/create', [SlotDeliveryController::class, 'create'])->name('slot-delivery.create');
+    Route::post('/slot-deliveries/store', [SlotDeliveryController::class, 'store'])->name('slot-delivery.store');
     Route::resource('slot-deliveries', SlotDeliveryController::class)->except(['create', 'store']);
 
     /*
@@ -90,4 +91,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/edit-profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::post('/edit-profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::get('/requests/preview/{id}', [RequestController::class, 'preview'])->name('requests.preview');
+
+    //new
 });

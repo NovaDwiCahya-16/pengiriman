@@ -25,7 +25,7 @@
             display: block;
         }
 
-        input[type="date"],
+        input[type="month"],
         input[type="number"],
         input[type="text"] {
             width: 100%;
@@ -84,27 +84,24 @@
             </div>
         @endif
 
-        <form action="{{ route('slot-deliveries.update', $slot->id) }}" method="POST">
+        <form action="{{ route('slot_delivery.update', $slot->id) }}" method="POST">
             @csrf
             @method('PUT')
 
             <div>
-                <label for="tanggal_pengiriman">Tanggal Pengiriman</label>
-                <input type="date" name="tanggal_pengiriman" id="tanggal_pengiriman"
-                    value="{{ $slot->tanggal_pengiriman ? \Carbon\Carbon::parse($slot->tanggal_pengiriman)->format('Y-m-d') : '' }}"
-                    required>
+                <label for="bulan_tahun">Bulan - Tahun</label>
+                <input type="month" name="bulan_tahun" id="bulan_tahun"
+                    value="{{ $slot->bulan_tahun }}" required>
             </div>
 
             <div>
-                <label for="slot_pengiriman">Slot Pengiriman</label>
-                <input type="number" name="slot_pengiriman" id="slot_pengiriman"
-                    value="{{ $slot->slot_pengiriman }}" required min="0">
+                <label for="slot">Slot Pengiriman</label>
+                <input type="number" name="slot" id="slot" value="{{ $slot->slot }}" required min="0">
             </div>
 
             <div>
-                <label for="permintaan_kirim">Permintaan Kirim</label>
-                <input type="number" name="permintaan_kirim" id="permintaan_kirim"
-                    value="{{ $slot->permintaan_kirim }}" required min="0">
+                <label for="unit">Permintaan Kirim</label>
+                <input type="number" name="unit" id="unit" value="{{ $slot->unit }}" min="0">
             </div>
 
             <div>
@@ -113,31 +110,31 @@
             </div>
 
             <button type="submit" class="btn btn-primary">Update</button>
-            <a href="{{ route('slot-deliveries.index') }}" class="btn btn-secondary">Batal</a>
+            <a href="{{ route('slot-delivery.index') }}" class="btn btn-secondary">Batal</a>
         </form>
     </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            const slotInput = document.getElementById('slot_pengiriman');
-            const permintaanInput = document.getElementById('permintaan_kirim');
+            const slotInput = document.getElementById('slot');
+            const unitInput = document.getElementById('unit');
             const resultField = document.getElementById('over_sisa');
 
             function updateOverSisa() {
                 const slot = parseInt(slotInput.value) || 0;
-                const permintaan = parseInt(permintaanInput.value) || 0;
-                const selisih = slot - permintaan;
+                const unit = parseInt(unitInput.value) || 0;
+                const selisih = slot - unit;
 
                 if (selisih < 0) {
-                    resultField.value = `${selisih} over`;
+                    resultField.value = `${Math.abs(selisih)} over`;
                 } else {
                     resultField.value = `${selisih} sisa`;
                 }
             }
 
             slotInput.addEventListener('input', updateOverSisa);
-            permintaanInput.addEventListener('input', updateOverSisa);
-            updateOverSisa(); // hitung saat pertama kali tampil
+            unitInput.addEventListener('input', updateOverSisa);
+            updateOverSisa();
         });
     </script>
 @endsection
