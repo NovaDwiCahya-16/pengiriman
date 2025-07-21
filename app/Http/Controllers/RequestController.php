@@ -4,14 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\RequestModel;
 use App\Models\Branch;
-<<<<<<< HEAD
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Yajra\DataTables\DataTables;
 use Carbon\Carbon;
-=======
-use Illuminate\Support\Facades\Storage;
->>>>>>> e819be99bc773c1eae88bb83ad69da7759ea73c6
 use PhpOffice\PhpSpreadsheet\IOFactory;
 
 class RequestController extends Controller
@@ -122,32 +118,13 @@ class RequestController extends Controller
             'excel_file.max' => 'Ukuran file maksimal 2MB',
         ]);
 
-<<<<<<< HEAD
         try {
             // Parse Excel file
             $excelData = $this->parseExcelFile($request->file('excel_file'));
-=======
-        // Muat isi file Excel
-        $spreadsheet = IOFactory::load($request->file('xlsx_file')->getRealPath());
-        $worksheet = $spreadsheet->getActiveSheet();
-
-        $rows = [];
-        foreach ($worksheet->getRowIterator() as $rowIndex => $row) {
-            $cells = [];
-            foreach ($row->getCellIterator() as $cell) {
-                $cells[] = trim($cell->getFormattedValue());
-            }
-            // Lewati baris kosong
-            if (array_filter($cells)) {
-                $rows[] = $cells;
-            }
-        }
->>>>>>> e819be99bc773c1eae88bb83ad69da7759ea73c6
 
             // Log untuk debugging
             Log::info('Parsed Excel Data:', $excelData);
 
-<<<<<<< HEAD
             // Validasi data yang diparsing
             if (!$excelData['branch_name']) {
                 return redirect()->back()->with('error', 'Nama cabang tidak ditemukan dalam file Excel! Pastikan format A2: "CABANG : [Nama Cabang]"');
@@ -174,27 +151,6 @@ class RequestController extends Controller
                             ->first();
                         if ($branch) break;
                     }
-=======
-        foreach ($existingRequests as $existing) {
-            $existingPath = storage_path("app/public/" . $existing->path);
-            if (file_exists($existingPath)) {
-                $existingSpreadsheet = IOFactory::load($existingPath);
-                $existingSheet = $existingSpreadsheet->getActiveSheet();
-                $existingRows = [];
-                foreach ($existingSheet->getRowIterator() as $r) {
-                    $data = [];
-                    foreach ($r->getCellIterator() as $c) {
-                        $data[] = trim($c->getFormattedValue());
-                    }
-                    if (array_filter($data)) {
-                        $existingRows[] = $data;
-                    }
-                }
-
-                // Bandingkan isi
-                if ($existingRows == $rows) {
-                    return back()->withErrors(['xlsx_file' => 'File Excel yang sama sudah pernah diunggah untuk cabang dan tanggal ini.']);
->>>>>>> e819be99bc773c1eae88bb83ad69da7759ea73c6
                 }
             }
 
@@ -231,25 +187,6 @@ class RequestController extends Controller
             ]);
             return redirect()->back()->with('error', 'Terjadi kesalahan saat memproses file Excel: ' . $e->getMessage());
         }
-<<<<<<< HEAD
-=======
-
-        // Simpan file
-        $filePath = $request->file('xlsx_file')->store('requests', 'public');
-
-        // Simpan data
-        Request::create([
-            'branch_id' => $validated['branch_id'],
-            'date' => $validated['date'],
-            'unit' => $validated['unit'],
-            'path' => $filePath,
-            'user_id' => auth()->user()->id,
-            'type' => auth()->user()->type,
-            'status' => 'Menunggu'
-        ]);
-
-        return redirect()->route('requests.index')->with('success', 'Permintaan berhasil disimpan!');
->>>>>>> e819be99bc773c1eae88bb83ad69da7759ea73c6
     }
 
     // Method untuk parsing Excel file
@@ -519,99 +456,5 @@ class RequestController extends Controller
                 'message' => 'Terjadi kesalahan saat memuat data: ' . $e->getMessage()
             ], 500);
         }
-<<<<<<< HEAD
-=======
-
-        $request->save();
-
-        return redirect()->route('requests.index')->with('success', 'Permintaan berhasil diperbarui!');
-    }
-
-    public function destroy($id)
-    {
-        $request = Request::findOrFail($id);
-
-        if ($request->path && Storage::disk('public')->exists($request->path)) {
-            Storage::disk('public')->delete($request->path);
-        }
-
-        $request->delete();
-
-        return redirect()->route('requests.index')->with('success', 'Permintaan berhasil dihapus!');
-    }
-
-    public function download($filename)
-    {
-        $filePath = 'requests/' . $filename;
-
-        if (!Storage::disk('public')->exists($filePath)) {
-            abort(404, 'File tidak ditemukan.');
-        }
-
-        return response()->download(storage_path("app/public/{$filePath}"));
-    }
-
-    public function show($id)
-    {
-        $request = Request::findOrFail($id);
-        $filePath = $request->path;
-        $fullPath = storage_path("app/public/{$filePath}");
-
-        if (!file_exists($fullPath)) {
-            return abort(404, 'File tidak ditemukan.');
-        }
-
-        $spreadsheet = IOFactory::load($fullPath);
-        $worksheet = $spreadsheet->getActiveSheet();
-        $rows = [];
-
-        foreach ($worksheet->getRowIterator() as $row) {
-            $cells = [];
-            foreach ($row->getCellIterator() as $cell) {
-                $cells[] = $cell->getFormattedValue();
-            }
-            $rows[] = $cells;
-        }
-
-        return view('requests.show', compact('request', 'rows'));
-    }
-
-    public function preview($id)
-    {
-        $request = Request::findOrFail($id);
-        $filePath = $request->path;
-        $fullPath = storage_path("app/public/{$filePath}");
-
-        if (!file_exists($fullPath)) {
-            return response()->json(['error' => 'File tidak ditemukan'], 404);
-        }
-
-        $spreadsheet = IOFactory::load($fullPath);
-        $worksheet = $spreadsheet->getActiveSheet();
-        $rows = [];
-
-        foreach ($worksheet->getRowIterator() as $row) {
-            $cells = [];
-            foreach ($row->getCellIterator() as $cell) {
-                $cells[] = $cell->getFormattedValue();
-            }
-            $rows[] = $cells;
-        }
-
-        return response()->json(['rows' => $rows]);
-    }
-
-    public function updateStatus(HttpRequest $request, $id)
-    {
-        $validated = $request->validate([
-            'status' => 'required|in:Menunggu,Disetujui,Ditolak'
-        ]);
-
-        $req = Request::findOrFail($id);
-        $req->status = $validated['status'];
-        $req->save();
-
-        return redirect()->route('requests.index')->with('success', 'Status permintaan diperbarui.');
->>>>>>> e819be99bc773c1eae88bb83ad69da7759ea73c6
     }
 }
