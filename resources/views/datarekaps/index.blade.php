@@ -15,6 +15,19 @@
         <a href="{{ route('datarekaps.create') }}" class="btn btn-success mb-4">Tambah Data</a>
     @endif
 
+    {{-- Tombol Filter Final / Non Final --}}
+    <div class="mb-3">
+    <a href="{{ route('datarekaps.index', ['filter' => 'final']) }}"
+       class="btn btn-outline-success me-2 {{ request('filter') === 'final' ? 'active' : '' }}">
+        Final
+    </a>
+    <a href="{{ route('datarekaps.index', ['filter' => 'non-final']) }}"
+       class="btn btn-outline-warning {{ request('filter') === 'non-final' ? 'active' : '' }}">
+        Non Final
+    </a>
+</div>
+
+
     <div class="table-responsive">
         <table class="table table-bordered table-striped align-middle text-nowrap" id="rekap-table">
             <thead class="table-white">
@@ -74,19 +87,25 @@
                         <td>{{ $data->tgl_serah_terima_unit }}</td>
                         <td>{{ $data->pengiriman_leadtime }}</td>
                         <td>{{ $data->performance_pengiriman_hari }}</td>
-                        <td>{{ $data->status_pengiriman }}</td>
+                        <td>
+                            @if(is_null($data->supir) && is_null($data->tgl_kirim))
+                                <span class="text-danger">Belum Pilih Supir dan Tanggal Kirim</span>
+                            @else
+                                {{ $data->status_pengiriman }}
+                            @endif
+                        </td>
                         <td>{{ $data->keterangan_pending }}</td>
                         <td>{{ $data->keterangan_lainnya }}</td>
                         @if(Auth::user()->type == 1)
-                        <td class="text-nowrap text-center">
-                            <a href="{{ route('datarekaps.edit', $data->id) }}" class="btn btn-sm btn-warning">Edit</a>
-                            <form action="{{ route('datarekaps.destroy', $data->id) }}" method="POST" class="d-inline"
-                                  onsubmit="return confirm('Yakin ingin menghapus data ini?')">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="btn btn-sm btn-danger">Hapus</button>
-                            </form>
-                        </td>
+                            <td class="text-nowrap text-center">
+                                <a href="{{ route('datarekaps.edit', $data->id) }}" class="btn btn-sm btn-warning">Edit</a>
+                                <form action="{{ route('datarekaps.destroy', $data->id) }}" method="POST" class="d-inline"
+                                      onsubmit="return confirm('Yakin ingin menghapus data ini?')">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-sm btn-danger">Hapus</button>
+                                </form>
+                            </td>
                         @endif
                     </tr>
                 @endforeach
@@ -123,4 +142,3 @@
         });
     </script>
 @endpush
-

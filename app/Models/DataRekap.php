@@ -17,6 +17,18 @@ class DataRekap extends Model
         'keterangan_lainnya'
     ];
 
+    public static function boot()
+{
+    parent::boot();
+
+    static::creating(function ($model) {
+        if (empty($model->supir) && empty($model->tgl_kirim)) {
+            $model->status_pengiriman = 'Belum Pilih Supir dan Tanggal Kirim';
+        }
+    });
+}
+
+
     public $timestamps = true; // Aktifkan kalau tabel punya created_at & updated_at
 
     // (Opsional) relasi jika kamu ingin kaitkan dengan user

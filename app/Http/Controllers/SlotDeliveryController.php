@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\SlotDelivery;
+use App\Models\RequestModel;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 
@@ -31,36 +32,34 @@ class SlotDeliveryController extends Controller
         }
 
         $validated = $request->validate([
-            'tanggal_pengiriman' => 'required|date',
+            'bulan' => 'required|integer|between:1,12',
+            'tahun' => 'required|integer|min:2020',
             'slot_pengiriman' => 'required|integer|min:0',
-            'permintaan_kirim' => 'required|integer|min:0',
-        ], [
-            'tanggal_pengiriman.required' => 'Tanggal pengiriman wajib diisi.',
-            'tanggal_pengiriman.date' => 'Format tanggal pengiriman tidak valid.',
-            'slot_pengiriman.required' => 'Slot pengiriman wajib diisi.',
-            'slot_pengiriman.integer' => 'Slot pengiriman harus berupa angka.',
-            'slot_pengiriman.min' => 'Slot pengiriman minimal 0.',
-            'permintaan_kirim.required' => 'Permintaan kirim wajib diisi.',
-            'permintaan_kirim.integer' => 'Permintaan kirim harus berupa angka.',
-            'permintaan_kirim.min' => 'Permintaan kirim minimal 0.',
         ]);
 
-        $date = Carbon::parse($validated['tanggal_pengiriman']);
+        $tanggal = Carbon::createFromDate($validated['tahun'], $validated['bulan'], 1);
 
-        // Cek apakah sudah ada slot untuk bulan & tahun yang sama
-        $existing = SlotDelivery::whereMonth('tanggal_pengiriman', $date->month)
-            ->whereYear('tanggal_pengiriman', $date->year)
+        // Cek apakah slot untuk bulan dan tahun ini sudah ada
+        $existing = SlotDelivery::whereMonth('tanggal_pengiriman', $tanggal->month)
+            ->whereYear('tanggal_pengiriman', $tanggal->year)
             ->first();
 
         if ($existing) {
             return redirect()->back()->withErrors([
-                'tanggal_pengiriman' => 'Slot untuk bulan ' . $date->translatedFormat('F Y') . ' sudah ada.'
+                'bulan' => 'Slot untuk bulan ' . $tanggal->translatedFormat('F Y') . ' sudah ada.'
             ])->withInput();
         }
 
-        $validated['over_sisa'] = $validated['slot_pengiriman'] - $validated['permintaan_kirim'];
+        // Simpan slot dengan default permintaan = 0
+        $slot = SlotDelivery::create([
+            'tanggal_pengiriman' => $tanggal,
+            'slot_pengiriman' => $validated['slot_pengiriman'],
+            'permintaan_kirim' => 0,
+            'over_sisa' => $validated['slot_pengiriman'],
+        ]);
 
-        SlotDelivery::create($validated);
+        // Sinkronkan jumlah permintaan jika sudah ada data request
+        self::syncSlotForMonth($tanggal->month, $tanggal->year);
 
         return redirect()->route('slot-deliveries.index')->with('success', 'Slot pengiriman berhasil ditambahkan.');
     }
@@ -82,38 +81,32 @@ class SlotDeliveryController extends Controller
         }
 
         $validated = $request->validate([
-            'tanggal_pengiriman' => 'required|date',
+            'bulan' => 'required|integer|between:1,12',
+            'tahun' => 'required|integer|min:2020',
             'slot_pengiriman' => 'required|integer|min:0',
-            'permintaan_kirim' => 'required|integer|min:0',
-        ], [
-            'tanggal_pengiriman.required' => 'Tanggal pengiriman wajib diisi.',
-            'tanggal_pengiriman.date' => 'Format tanggal pengiriman tidak valid.',
-            'slot_pengiriman.required' => 'Slot pengiriman wajib diisi.',
-            'slot_pengiriman.integer' => 'Slot pengiriman harus berupa angka.',
-            'slot_pengiriman.min' => 'Slot pengiriman minimal 0.',
-            'permintaan_kirim.required' => 'Permintaan kirim wajib diisi.',
-            'permintaan_kirim.integer' => 'Permintaan kirim harus berupa angka.',
-            'permintaan_kirim.min' => 'Permintaan kirim minimal 0.',
         ]);
 
-        $date = Carbon::parse($validated['tanggal_pengiriman']);
+        $tanggal = Carbon::createFromDate($validated['tahun'], $validated['bulan'], 1);
 
-        // Cek apakah bulan ini sudah ada slot selain ID saat ini
-        $existing = SlotDelivery::whereMonth('tanggal_pengiriman', $date->month)
-            ->whereYear('tanggal_pengiriman', $date->year)
+        $existing = SlotDelivery::whereMonth('tanggal_pengiriman', $tanggal->month)
+            ->whereYear('tanggal_pengiriman', $tanggal->year)
             ->where('id', '!=', $id)
             ->first();
 
         if ($existing) {
             return redirect()->back()->withErrors([
-                'tanggal_pengiriman' => 'Slot untuk bulan ' . $date->translatedFormat('F Y') . ' sudah ada.'
+                'bulan' => 'Slot untuk bulan ' . $tanggal->translatedFormat('F Y') . ' sudah ada.'
             ])->withInput();
         }
 
-        $validated['over_sisa'] = $validated['slot_pengiriman'] - $validated['permintaan_kirim'];
-
         $slot = SlotDelivery::findOrFail($id);
-        $slot->update($validated);
+        $slot->update([
+            'tanggal_pengiriman' => $tanggal,
+            'slot_pengiriman' => $validated['slot_pengiriman'],
+        ]);
+
+        // Update permintaan & sisa
+        self::syncSlotForMonth($tanggal->month, $tanggal->year);
 
         return redirect()->route('slot-deliveries.index')->with('success', 'Data berhasil diperbarui.');
     }
@@ -128,5 +121,26 @@ class SlotDeliveryController extends Controller
         $slot->delete();
 
         return redirect()->route('slot-deliveries.index')->with('success', 'Data berhasil dihapus.');
+    }
+
+    /**
+     * Sinkronisasi ulang total permintaan dan over/sisa berdasarkan data request
+     */
+    public static function syncSlotForMonth($month, $year)
+    {
+        $slot = SlotDelivery::whereMonth('tanggal_pengiriman', $month)
+            ->whereYear('tanggal_pengiriman', $year)
+            ->first();
+
+        if ($slot) {
+            $totalUnit = RequestModel::whereMonth('date', $month)
+                ->whereYear('date', $year)
+                ->sum('unit');
+
+            $slot->update([
+                'permintaan_kirim' => $totalUnit,
+                'over_sisa' => $slot->slot_pengiriman - $totalUnit,
+            ]);
+        }
     }
 }

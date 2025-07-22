@@ -35,6 +35,17 @@ class LoginController extends Controller
         ]);
     }
 
+    // ✅ Proses logout
+    public function logout(Request $request)
+    {
+        Auth::logout();
+
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect()->route('login')->with('success', 'Berhasil logout.');
+    }
+
     // ✅ Tampilkan halaman register
     public function showRegister()
     {
@@ -68,7 +79,6 @@ class LoginController extends Controller
             'type' => $type,
         ]);
 
-        // ✅ Langsung redirect ke login (tanpa login otomatis)
         return redirect()->route('login')->with('success', 'Akun berhasil dibuat. Silakan login terlebih dahulu.');
     }
 }

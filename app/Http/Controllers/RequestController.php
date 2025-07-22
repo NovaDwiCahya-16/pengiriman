@@ -7,6 +7,7 @@ use App\Models\Branch;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Yajra\DataTables\DataTables;
+use App\Models\SlotDelivery; // ✅ Tambahkan ini
 use Carbon\Carbon;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 
@@ -109,85 +110,99 @@ class RequestController extends Controller
 
     // Store request baru dengan import Excel
     public function storeRequest(Request $request)
-    {
-        $request->validate([
-            'excel_file' => 'required|file|mimes:xlsx,xls|max:2048',
-        ], [
-            'excel_file.required' => 'File Excel wajib diupload',
-            'excel_file.mimes' => 'File harus berformat Excel (.xlsx atau .xls)',
-            'excel_file.max' => 'Ukuran file maksimal 2MB',
-        ]);
+{
+    $request->validate([
+        'excel_file' => 'required|file|mimes:xlsx,xls|max:2048',
+    ], [
+        'excel_file.required' => 'File Excel wajib diupload',
+        'excel_file.mimes' => 'File harus berformat Excel (.xlsx atau .xls)',
+        'excel_file.max' => 'Ukuran file maksimal 2MB',
+    ]);
 
-        try {
-            // Parse Excel file
-            $excelData = $this->parseExcelFile($request->file('excel_file'));
+    try {
+        // Parse Excel file
+        $excelData = $this->parseExcelFile($request->file('excel_file'));
+        Log::info('Parsed Excel Data:', $excelData);
 
-            // Log untuk debugging
-            Log::info('Parsed Excel Data:', $excelData);
+        if (!$excelData['branch_name']) {
+            return redirect()->back()->with('error', 'Nama cabang tidak ditemukan dalam file Excel! Pastikan format A2: "CABANG : [Nama Cabang]"');
+        }
 
-            // Validasi data yang diparsing
-            if (!$excelData['branch_name']) {
-                return redirect()->back()->with('error', 'Nama cabang tidak ditemukan dalam file Excel! Pastikan format A2: "CABANG : [Nama Cabang]"');
-            }
+        if (!$excelData['date']) {
+            return redirect()->back()->with('error', 'Tanggal tidak ditemukan dalam file Excel! Pastikan format A3: "DIBUAT TGL : [Tanggal]"');
+        }
 
-            if (!$excelData['date']) {
-                return redirect()->back()->with('error', 'Tanggal tidak ditemukan dalam file Excel! Pastikan format A3: "DIBUAT TGL : [Tanggal]"');
-            }
+        if ($excelData['unit_count'] <= 0) {
+            return redirect()->back()->with('error', 'Data unit tidak ditemukan! Pastikan ada data mulai dari baris A7');
+        }
 
-            if ($excelData['unit_count'] <= 0) {
-                return redirect()->back()->with('error', 'Data unit tidak ditemukan! Pastikan ada data mulai dari baris A7');
-            }
+        $branch = Branch::where('name', 'like', '%' . trim($excelData['branch_name']) . '%')->first();
 
-            // Cari branch dengan pencarian yang lebih fleksibel
-            $branch = Branch::where('name', 'like', '%' . trim($excelData['branch_name']) . '%')
-                ->first();
-
-            if (!$branch) {
-                // Coba cari dengan kata kunci yang lebih spesifik
-                $searchTerms = explode(' ', trim($excelData['branch_name']));
-                foreach ($searchTerms as $term) {
-                    if (strlen($term) > 3) { // Hanya gunakan kata dengan panjang > 3
-                        $branch = Branch::where('name', 'like', '%' . $term . '%')
-                            ->first();
-                        if ($branch) break;
-                    }
+        if (!$branch) {
+            $searchTerms = explode(' ', trim($excelData['branch_name']));
+            foreach ($searchTerms as $term) {
+                if (strlen($term) > 3) {
+                    $branch = Branch::where('name', 'like', '%' . $term . '%')->first();
+                    if ($branch) break;
                 }
             }
-
-            if (!$branch) {
-                return redirect()->back()->with('error', 'Cabang "' . $excelData['branch_name'] . '" tidak ditemukan di database! Cabang yang tersedia: ' . Branch::pluck('name')->implode(', '));
-            }
-
-            // Cek apakah sudah ada request dengan data yang sama
-            $existingRequest = RequestModel::where('branch_id', $branch->id)
-                ->where('date', $excelData['date'])
-                ->where('unit', $excelData['unit_count'])
-                ->first();
-
-            if ($existingRequest) {
-                return redirect()->back()->with('error', 'Request dengan data yang sama sudah ada untuk cabang ini pada tanggal tersebut!');
-            }
-
-            // Simpan request
-            $newRequest = RequestModel::create([
-                'branch_id' => $branch->id,
-                'date' => $excelData['date'],
-                'unit' => $excelData['unit_count'],
-                'status' => 'Menunggu',
-            ]);
-
-            // Log untuk debugging
-            Log::info('Request created successfully:', $newRequest->toArray());
-
-            return redirect()->back()->with('success', 'Request berhasil ditambahkan dari Excel! Cabang: ' . $branch->name . ', Tanggal: ' . Carbon::parse($excelData['date'])->format('d/m/Y') . ', Unit: ' . $excelData['unit_count']);
-        } catch (\Exception $e) {
-            Log::error('Error processing Excel file:', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            return redirect()->back()->with('error', 'Terjadi kesalahan saat memproses file Excel: ' . $e->getMessage());
         }
+
+        if (!$branch) {
+            return redirect()->back()->with('error', 'Cabang "' . $excelData['branch_name'] . '" tidak ditemukan di database!');
+        }
+
+        $existingRequest = RequestModel::where('branch_id', $branch->id)
+            ->where('date', $excelData['date'])
+            ->where('unit', $excelData['unit_count'])
+            ->first();
+
+        if ($existingRequest) {
+            return redirect()->back()->with('error', 'Request dengan data yang sama sudah ada!');
+        }
+
+        // Simpan request
+        $newRequest = RequestModel::create([
+            'branch_id' => $branch->id,
+            'date' => $excelData['date'],
+            'unit' => $excelData['unit_count'],
+            'status' => 'Menunggu',
+        ]);
+
+        Log::info('Request created successfully:', $newRequest->toArray());
+
+        // === LOGIKA TAMBAHAN: Update slot terkait ===
+        $bulan = Carbon::parse($excelData['date'])->month;
+        $tahun = Carbon::parse($excelData['date'])->year;
+
+        // Cari slot berdasarkan bulan & tahun
+        $slot = SlotDelivery::whereMonth('tanggal_pengiriman', $bulan)
+            ->whereYear('tanggal_pengiriman', $tahun)
+            ->first();
+
+        if ($slot) {
+            // Hitung ulang total unit permintaan untuk bulan tersebut
+            $totalUnit = RequestModel::whereMonth('date', $bulan)
+                ->whereYear('date', $tahun)
+                ->sum('unit');
+
+            // Update slot
+            $slot->update([
+                'permintaan_kirim' => $totalUnit,
+                'over_sisa' => $slot->slot_pengiriman - $totalUnit,
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'Request berhasil ditambahkan dari Excel! Cabang: ' . $branch->name . ', Tanggal: ' . Carbon::parse($excelData['date'])->format('d/m/Y') . ', Unit: ' . $excelData['unit_count']);
+
+    } catch (\Exception $e) {
+        Log::error('Error processing Excel file:', [
+            'message' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ]);
+        return redirect()->back()->with('error', 'Terjadi kesalahan saat memproses file Excel: ' . $e->getMessage());
     }
+}
 
     // Method untuk parsing Excel file
     private function parseExcelFile($file)

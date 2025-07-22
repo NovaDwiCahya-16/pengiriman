@@ -78,9 +78,10 @@ Route::middleware('auth')->group(function () {
     | DATA REKAP
     |--------------------------------------------------------------------------
     */
-    Route::get('/datarekaps/create', [DataRekapController::class, 'create'])->name('datarekaps.create');
-    Route::post('/datarekaps', [DataRekapController::class, 'store'])->name('datarekaps.store');
-    Route::resource('datarekaps', DataRekapController::class)->except(['create', 'store']);
+Route::get('/datarekaps', [DataRekapController::class, 'index'])->name('datarekaps.index');
+Route::get('/datarekaps/create', [DataRekapController::class, 'create'])->name('datarekaps.create');
+Route::post('/datarekaps', [DataRekapController::class, 'store'])->name('datarekaps.store');
+Route::resource('datarekaps', DataRekapController::class)->except(['index', 'create', 'store']);
 
     /*
     |--------------------------------------------------------------------------
