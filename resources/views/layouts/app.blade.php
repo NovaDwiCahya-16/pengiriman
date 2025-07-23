@@ -200,10 +200,6 @@
                         class="{{ request()->routeIs('datarekaps.create') ? 'active' : '' }}">
                         <i class="bi bi-journal-plus"></i><span>Tambah Data Rekap</span>
                     </a>
-                    <a href="{{ route('slot-deliveries.create') }}"
-                        class="{{ request()->routeIs('slot-deliveries.create') ? 'active' : '' }}">
-                        <i class="bi bi-plus-square-dotted"></i><span>Tambah Slot</span>
-                    </a>
                 @endif
             @endauth
 
@@ -214,8 +210,8 @@
                 class="{{ request()->routeIs('datarekaps.index') ? 'active' : '' }}">
                 <i class="bi bi-journal-text"></i><span>Data Rekap</span>
             </a>
-            <a href="{{ route('slot-deliveries.index') }}"
-                class="{{ request()->routeIs('slot-deliveries.index') ? 'active' : '' }}">
+            <a href="{{ route('manage.slot') }}"
+                class="{{ request()->routeIs('manage.slot') ? 'active' : '' }}">
                 <i class="bi bi-truck"></i><span>Slot Pengiriman</span>
             </a>
 

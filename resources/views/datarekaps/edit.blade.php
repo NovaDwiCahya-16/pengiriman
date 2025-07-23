@@ -139,6 +139,33 @@
                                             {{ $s }}</option>
                                     @endforeach
                                 </select>
+                            @elseif ($field === 'cabang')
+                                <select name="cabang" id="cabang" class="form-select">
+                                    <option value="">-- Pilih Cabang --</option>
+                                    @php
+                                        $cabangList = [
+                                            'Ciracas',
+                                            'Condet',
+                                            'Daan Mogot',
+                                            'GSO',
+                                            'Gunung Sahari',
+                                            'Hayam Wuruk',
+                                            'Jatinegara',
+                                            'Kamal',
+                                            'Kelapa Gading',
+                                            'Klender',
+                                            'Sunter',
+                                            'Tambora',
+                                            'Tanah Tinggi',
+                                            'Wari Jatinegara',
+                                        ];
+                                    @endphp
+                                    @foreach ($cabangList as $c)
+                                        <option value="{{ $c }}"
+                                            {{ old('cabang', $datarekap->cabang ?? '') == $c ? 'selected' : '' }}>
+                                            {{ $c }}</option>
+                                    @endforeach
+                                </select>
                             @else
                                 <input type="{{ in_array($field, $dateFields) ? 'date' : 'text' }}"
                                     name="{{ $field }}" id="{{ $field }}" class="form-control"

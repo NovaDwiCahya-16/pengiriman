@@ -20,7 +20,7 @@
                 <thead class="table-light">
                     <tr>
                         <th>#</th>
-                        <th>Bulan Pengiriman</th>
+                        <th>Tanggal Pengiriman</th>
                         <th>Slot Pengiriman</th>
                         <th>Permintaan Kirim</th>
                         <th>Over/Sisa</th>
@@ -33,7 +33,7 @@
                     @foreach ($slots as $index => $slot)
                         <tr>
                             <td>{{ $index + 1 }}</td>
-                            <td>{{ \Carbon\Carbon::parse($slot->tanggal_pengiriman)->translatedFormat('F Y') }}</td>
+                            <td>{{ \Carbon\Carbon::parse($slot->tanggal_pengiriman)->format('d-m-Y') }}</td>
                             <td>{{ $slot->slot_pengiriman }}</td>
                             <td>{{ $slot->permintaan_kirim }}</td>
                             <td>
