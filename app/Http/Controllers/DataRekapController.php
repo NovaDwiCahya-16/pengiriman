@@ -224,19 +224,16 @@ class DataRekapController extends Controller
         $today = strtotime(date('Y-m-d'));
 
         // Logic sesuai rumus Excel
+        $today = Carbon::today(); //untuk hitung today
 
-        $today = Carbon::today();
-
-      if (empty($tgl_kirim) && Carbon::parse($tgl_serah_terima_unit)->isSameDay($today->copy()->addDay())) {
-    return 'DIKIRIM BESOK';
-}
-
+        if (empty($tgl_kirim) && Carbon::parse($tgl_serah_terima_unit)->isSameDay($today->copy()->addDay())) {
+            return 'DIKIRIM BESOK';
+        }
         if ($tgl_serah_terima_unit == $tgl_kirim && $tgl_kirim != 0) {
             return 'TEPAT WAKTU';
         }
-        if ($tgl_kirim == 0 && $tgl_serah_terima_unit == $today) {
-            return 'DALAM PENGIRIMAN';
-        }
+        if (empty($tgl_kirim) && Carbon::parse($tgl_serah_terima_unit)->isSameDay(Carbon::today()))
+
         if ($tgl_kirim == 0 && $tgl_serah_terima_unit < $today) {
             return 'MENUNGGU PENGIRIMAN';
         }
