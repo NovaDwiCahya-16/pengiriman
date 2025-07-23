@@ -194,22 +194,18 @@
                 <i class="bi bi-speedometer2"></i><span>Dashboard</span>
             </a>
 
-            @auth
-                @if (Auth::user()->type == 1)
-                    <a href="{{ route('datarekaps.create') }}"
-                        class="{{ request()->routeIs('datarekaps.create') ? 'active' : '' }}">
-                        <i class="bi bi-journal-plus"></i><span>Tambah Data Rekap</span>
-                    </a>
-                @endif
-            @endauth
+           
 
             <a href="{{ route('requests') }}" class="{{ request()->routeIs('requests') ? 'active' : '' }}">
                 <i class="bi bi-folder2-open"></i><span>Data Permintaan</span>
             </a>
-            <a href="{{ route('datarekaps.index') }}"
-                class="{{ request()->routeIs('datarekaps.index') ? 'active' : '' }}">
-                <i class="bi bi-journal-text"></i><span>Data Rekap</span>
-            </a>
+
+
+          <a href="{{ route('datarekaps.index') }}"
+    class="{{ request()->routeIs('datarekaps.index') ? 'active' : '' }}">
+    <i class="bi bi-journal-text"></i><span>Data Rekap</span>
+</a>
+            
             <a href="{{ route('manage.slot') }}"
                 class="{{ request()->routeIs('manage.slot') ? 'active' : '' }}">
                 <i class="bi bi-truck"></i><span>Slot Pengiriman</span>
