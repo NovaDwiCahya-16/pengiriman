@@ -3,15 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\SlotDelivery;
-<<<<<<< HEAD
-use Illuminate\Support\Facades\Auth;
-=======
 use App\Models\RequestModel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Yajra\DataTables\DataTables;
 use Carbon\Carbon;
->>>>>>> backup-edit-datarekap
 
 class SlotDeliveryController extends Controller
 {
@@ -22,11 +18,6 @@ class SlotDeliveryController extends Controller
 
     public function manageSlot(Request $request)
     {
-<<<<<<< HEAD
-        // Hanya admin (type = 1) yang bisa akses
-        if (Auth::user()->type !== 1) {
-            abort(403, 'Akses ditolak. Hanya admin yang bisa menambah data.');
-=======
         if ($request->ajax()) {
             try {
                 $data = SlotDelivery::select(['id', 'tanggal_pengiriman', 'slot_pengiriman', 'permintaan_kirim', 'over_sisa'])
@@ -90,7 +81,6 @@ class SlotDeliveryController extends Controller
                     'error' => 'Terjadi kesalahan saat memuat data: ' . $e->getMessage()
                 ], 500);
             }
->>>>>>> backup-edit-datarekap
         }
 
         return redirect()->route('slots');
@@ -102,25 +92,6 @@ class SlotDeliveryController extends Controller
             'tanggal_pengiriman' => 'required|date_format:Y-m',
             'slot_pengiriman' => 'required|integer|min:1',
         ], [
-<<<<<<< HEAD
-            'tanggal_pengiriman.required' => 'Tanggal pengiriman wajib diisi.',
-            'tanggal_pengiriman.date' => 'Format tanggal pengiriman tidak valid.',
-
-            'slot_pengiriman.required' => 'Slot pengiriman wajib diisi.',
-            'slot_pengiriman.integer' => 'Slot pengiriman harus berupa angka.',
-            'slot_pengiriman.min' => 'Slot pengiriman minimal 0.',
-
-            'permintaan_kirim.required' => 'Permintaan kirim wajib diisi.',
-            'permintaan_kirim.integer' => 'Permintaan kirim harus berupa angka.',
-            'permintaan_kirim.min' => 'Permintaan kirim minimal 0.',
-        ]);
-
-        $validated['over_sisa'] = $validated['slot_pengiriman'] - $validated['permintaan_kirim'];
-
-        SlotDelivery::create($validated);
-
-        return redirect()->route('slot-deliveries.index')->with('success', 'Slot pengiriman berhasil ditambahkan.');
-=======
             'tanggal_pengiriman.required' => 'Bulan dan tahun wajib diisi',
             'tanggal_pengiriman.date_format' => 'Format bulan dan tahun tidak valid',
             'slot_pengiriman.required' => 'Slot pengiriman wajib diisi',
@@ -164,7 +135,6 @@ class SlotDeliveryController extends Controller
             ]);
             return redirect()->back()->with('error', 'Terjadi kesalahan saat menambah slot: ' . $e->getMessage());
         }
->>>>>>> backup-edit-datarekap
     }
 
     public function editSlot(Request $request)
@@ -174,21 +144,6 @@ class SlotDeliveryController extends Controller
             'tanggal_pengiriman' => 'required|date_format:Y-m',
             'slot_pengiriman' => 'required|integer|min:1',
         ], [
-<<<<<<< HEAD
-            'tanggal_pengiriman.required' => 'Tanggal pengiriman wajib diisi.',
-            'tanggal_pengiriman.date' => 'Format tanggal pengiriman tidak valid.',
-
-            'slot_pengiriman.required' => 'Slot pengiriman wajib diisi.',
-            'slot_pengiriman.integer' => 'Slot pengiriman harus berupa angka.',
-            'slot_pengiriman.min' => 'Slot pengiriman minimal 0.',
-
-            'permintaan_kirim.required' => 'Permintaan kirim wajib diisi.',
-            'permintaan_kirim.integer' => 'Permintaan kirim harus berupa angka.',
-            'permintaan_kirim.min' => 'Permintaan kirim minimal 0.',
-        ]);
-
-        $validated['over_sisa'] = $validated['slot_pengiriman'] - $validated['permintaan_kirim'];
-=======
             'tanggal_pengiriman.required' => 'Bulan dan tahun wajib diisi',
             'tanggal_pengiriman.date_format' => 'Format bulan dan tahun tidak valid',
             'slot_pengiriman.required' => 'Slot pengiriman wajib diisi',
@@ -216,7 +171,6 @@ class SlotDeliveryController extends Controller
             $permintaan_kirim = RequestModel::whereMonth('date', $bulan)
                 ->whereYear('date', $tahun)
                 ->sum('unit');
->>>>>>> backup-edit-datarekap
 
             $over_sisa = $request->slot_pengiriman - $permintaan_kirim;
 
