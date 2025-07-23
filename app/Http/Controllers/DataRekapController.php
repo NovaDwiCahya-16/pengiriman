@@ -243,7 +243,7 @@ class DataRekapController extends Controller
         if ($tgl_serah_terima_unit > $tgl_kirim && $tgl_kirim != 0) {
             return 'TIDAK VALID';
         }
-        // Default jika tidak ada kondisi yang cocok
+        // Default jika tidak ada kondisi yang cocoks
         return $data['status_pengiriman'] ?? 'Sudah Pilih Supir dan Tanggal Kirim';
     }
 
