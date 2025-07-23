@@ -13,7 +13,7 @@ class SlotDeliveryController extends Controller
 {
     public function adminSlot()
     {
-        return view('slot_deliveries.slot');
+        return view('slot_delivery.slot');
     }
 
     public function manageSlot(Request $request)

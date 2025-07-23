@@ -69,10 +69,6 @@ Route::middleware('auth')->group(function () {
     | SLOT PENGIRIMAN
     |--------------------------------------------------------------------------
     */
-    // Route::get('/slot-deliveries/create', [SlotDeliveryController::class, 'create'])->name('slot-deliveries.create');
-    // Route::post('/slot-deliveries', [SlotDeliveryController::class, 'store'])->name('slot-deliveries.store');
-    // Route::resource('slot-deliveries', SlotDeliveryController::class)->except(['create', 'store']);
-
     Route::get('/slot', [SlotDeliveryController::class, 'adminSlot'])->name('slots');
     Route::get('/manage-slot', [SlotDeliveryController::class, 'manageSlot'])->name('manage.slot');
     Route::post('/store-slot', [SlotDeliveryController::class, 'storeSlot'])->name('store.slot');
@@ -84,14 +80,14 @@ Route::middleware('auth')->group(function () {
     | DATA REKAP
     |--------------------------------------------------------------------------
     */
-Route::middleware('auth')->group(function () {
-    Route::get('/datarekap', [DataRekapController::class, 'index'])->name('datarekaps.index');
-    Route::get('/manage-datarekap', [DataRekapController::class, 'manageDataRekap'])->name('manage.datarekap');
-    Route::post('/store-datarekap', [DataRekapController::class, 'storeDataRekap'])->name('store.datarekap');
-Route::post('/editDataRekapModal', [DataRekapController::class, 'editDataRekap'])->name('edit.datarekap');
-    Route::post('/delete-datarekap', [DataRekapController::class, 'deleteDataRekap'])->name('delete.datarekap');
-Route::get('/datarekaps/{id}/detail', [DataRekapController::class, 'getDataRekapDetail'])->name('datarekaps.detail');
-});
+    Route::middleware('auth')->group(function () {
+        Route::get('/datarekap', [DataRekapController::class, 'index'])->name('datarekaps.index');
+        Route::get('/manage-datarekap', [DataRekapController::class, 'manageDataRekap'])->name('manage.datarekap');
+        Route::post('/store-datarekap', [DataRekapController::class, 'storeDataRekap'])->name('store.datarekap');
+        Route::post('/editDataRekapModal', [DataRekapController::class, 'editDataRekap'])->name('edit.datarekap');
+        Route::post('/delete-datarekap', [DataRekapController::class, 'deleteDataRekap'])->name('delete.datarekap');
+        Route::get('/datarekaps/{id}/detail', [DataRekapController::class, 'getDataRekapDetail'])->name('datarekaps.detail');
+    });
     /*
     |--------------------------------------------------------------------------
     | PROFILE
