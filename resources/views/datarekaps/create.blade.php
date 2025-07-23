@@ -1,10 +1,9 @@
-
 @extends('layouts.app')
 
 @section('title', 'Tambah Data Rekap')
 
 @section('content')
-    @if(Auth::user()->type != 1)
+    @if (Auth::user()->type != 1)
         <div class="text-center mt-5">
             <h1 class="display-6 text-muted">403 | AKSES DITOLAK. HANYA ADMIN YANG BISA MENAMBAH DATA.</h1>
         </div>
@@ -107,22 +106,28 @@
                 <input type="text" name="warna" value="{{ old('warna') }}">
 
                 <label>Cabang</label>
-                <input type="text" name="cabang" value="{{ old('cabang') }}">
+                <select name="cabang" class="form-select" required>
+                    <option value="">-- Pilih Cabang --</option>
+                    @foreach (['Ciracas', 'Condet', 'Daan Mogot', 'GSO', 'Gunung Sahari', 'Hayam Wuruk', 'Jatinegara', 'Kamal', 'Kelapa Gading', 'Klender', 'Sunter', 'Tambora', 'Tanah Tinggi', 'Wari Jatinegara'] as $cabang)
+                        <option value="{{ $cabang }}" {{ old('cabang') == $cabang ? 'selected' : '' }}>
+                            {{ $cabang }}</option>
+                    @endforeach
+                </select>
 
                 <label for="supir">Supir</label>
-<select name="supir" id="supir" class="form-select">
-    <option value="">-- Pilih Supir --</option>
-    <option value="Adi" {{ old('supir') == 'Adi' ? 'selected' : '' }}>Adi</option>
-    <option value="Agus" {{ old('supir') == 'Agus' ? 'selected' : '' }}>Agus</option>
-    <option value="Badrus" {{ old('supir') == 'Badrus' ? 'selected' : '' }}>Badrus</option>
-    <option value="Novry" {{ old('supir') == 'Novry' ? 'selected' : '' }}>Novry</option>
-    <option value="Nono" {{ old('supir') == 'Nono' ? 'selected' : '' }}>Nono</option>
-    <option value="Supri" {{ old('supir') == 'Supri' ? 'selected' : '' }}>Supri</option>
-    <option value="Supardi" {{ old('supir') == 'Supardi' ? 'selected' : '' }}>Supardi</option>
-    <option value="Joko" {{ old('supir') == 'Joko' ? 'selected' : '' }}>Joko</option>
-    <option value="Jeki" {{ old('supir') == 'Jeki' ? 'selected' : '' }}>Jeki</option>
-    <option value="Gugun" {{ old('supir') == 'Gugun' ? 'selected' : '' }}>Gugun</option>
-</select>
+                <select name="supir" id="supir" class="form-select">
+                    <option value="">-- Pilih Supir --</option>
+                    <option value="Adi" {{ old('supir') == 'Adi' ? 'selected' : '' }}>Adi</option>
+                    <option value="Agus" {{ old('supir') == 'Agus' ? 'selected' : '' }}>Agus</option>
+                    <option value="Badrus" {{ old('supir') == 'Badrus' ? 'selected' : '' }}>Badrus</option>
+                    <option value="Novry" {{ old('supir') == 'Novry' ? 'selected' : '' }}>Novry</option>
+                    <option value="Nono" {{ old('supir') == 'Nono' ? 'selected' : '' }}>Nono</option>
+                    <option value="Supri" {{ old('supir') == 'Supri' ? 'selected' : '' }}>Supri</option>
+                    <option value="Supardi" {{ old('supir') == 'Supardi' ? 'selected' : '' }}>Supardi</option>
+                    <option value="Joko" {{ old('supir') == 'Joko' ? 'selected' : '' }}>Joko</option>
+                    <option value="Jeki" {{ old('supir') == 'Jeki' ? 'selected' : '' }}>Jeki</option>
+                    <option value="Gugun" {{ old('supir') == 'Gugun' ? 'selected' : '' }}>Gugun</option>
+                </select>
 
 
                 <label>Tanggal Kirim</label>
@@ -169,16 +174,26 @@
         </div>
 
        <script>
-    document.addEventListener('DOMContentLoaded', function () {
+    document.addEventListener('DOMContentLoaded', function() {
         const tglKirim = document.querySelector('[name="tgl_kirim"]');
         const tglSerah = document.querySelector('[name="tgl_serah_terima_unit"]');
         const leadtime = document.querySelector('[name="pengiriman_leadtime"]');
         const performanceHari = document.querySelector('[name="performance_pengiriman_hari"]');
         const statusPengiriman = document.querySelector('[name="status_pengiriman"]');
+        const supir = document.querySelector('[name="supir"]'); // pastikan input/select punya name="supir"
 
         function hitungLeadtimeDanStatus() {
             const valKirim = tglKirim.value;
             const valSerah = tglSerah.value;
+            const valSupir = supir ? supir.value.trim() : '';
+
+            // Tambahan logika untuk cek jika supir dan tgl kirim kosong
+            if (!valKirim && !valSupir) {
+                statusPengiriman.value = 'Belum Pilih Supir dan Tanggal Kirim';
+                leadtime.value = '';
+                performanceHari.value = '';
+                return; // hentikan proses agar logika bawah tidak jalan
+            }
 
             if (valSerah) {
                 const dSerah = new Date(valSerah);
@@ -226,9 +241,14 @@
 
         tglKirim.addEventListener('change', hitungLeadtimeDanStatus);
         tglSerah.addEventListener('change', hitungLeadtimeDanStatus);
+        if (supir) {
+            supir.addEventListener('change', hitungLeadtimeDanStatus);
+        }
+
         hitungLeadtimeDanStatus(); // saat pertama load
     });
 </script>
+
 
     @endif
 @endsection
