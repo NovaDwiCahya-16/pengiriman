@@ -10,7 +10,7 @@ class CreateSlotDeliveriesTable extends Migration
     {
        Schema::create('slot_deliveries', function (Blueprint $table) {
     $table->id();
-    $table->string('tanggalPengiriman'); // contoh: "Juli 2025"
+    $table->string('tanggal_pengiriman'); // contoh: "Juli 2025"
     $table->integer('permintaan_kirim');
     $table->integer('slot_pengiriman');
     $table->string('over_sisa'); // bisa positif atau negatif, bebas string
